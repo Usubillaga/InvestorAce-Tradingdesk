@@ -84,7 +84,7 @@ function sessionBook() {
   return `<article class="panel">${panelHead('Intraday-Paperhandel','Lokal in diesem Browser · letzter Kursabruf '+quoteTime(sessionData.sampled))}
   ${cells(['Konto','Cash','Positionen','Wert zu letzten Kursen','P&L'],rows)}
   ${positions.length?cells(['Offene Position','Konto','Stück','Letzter Kurs','Wert','P&L','Kurszeit'],positions):''}
-  <div class="details"><p>Bei geöffnetem Desk liefern die bestätigten Tagesregeln die Orders. Das Intraday-Konto simuliert zum ersten beobachteten, höchstens fünf Minuten alten regulären Kurs nach Aufnahme der Order. USD-Fills benötigen einen zeitnahen EUR/USD-Kurs. Gebühr je Fill 0,10 %. Offene Orders und abgelaufene Signale erzeugen ohne gültigen Kurs keine Ausführung.</p></div>
+  <div class="details"><p>Neue Swing-Käufe erfordern einen Fundamental- und Opportunity-Score ab 7, ein Buy-Label und bestätigten Markt- und Aktientrend. Die beiden Vergleichskonten eröffnen keine neuen Positionen. Das Intraday-Konto simuliert zum ersten beobachteten, höchstens fünf Minuten alten regulären Kurs nach Aufnahme der Order. USD-Fills benötigen einen zeitnahen EUR/USD-Kurs. Gebühr je Fill 0,10 %. Offene Orders und abgelaufene Signale erzeugen ohne gültigen Kurs keine Ausführung.</p></div>
   ${fills.length?cells(['Zeit (Berlin)','Wert','Konto','Seite','Kurs','Volumen','Entscheidungs-Build'],fills.map(f=>[quoteTime(f.at),esc(f.ticker),esc(strategy(f.strategy)),esc(f.side),n(f.price)+' '+esc(f.currency),eur(f.euros),link('https://github.com/Usubillaga/InvestorAce/tree/'+encodeURIComponent(f.commit)+'/history/_builds/'+encodeURIComponent(f.run),'Build')])):empty('Noch keine simulierten Intraday-Fills','Das Journal startet prospektiv und erfasst jede Ausführung mit Kurszeit und Entscheidungs-Build.')}</article>`;
 }
 function instrumentName(row) {return row?.name || sessionData?.quotes[row?.symbol]?.name || row?.symbol || row?.ticker || 'Offen';}
@@ -155,13 +155,26 @@ async function refreshSession() {
 
 let deskBook=null;
 const newPaperBook=()=>({accounts:Object.fromEntries(['timing','fundamental','opportunity'].map(k=>[k,{cash:10000,holdings:{}}])),armed:{},fills:{}});
+const swingPolicy = 'fundamental-and-technical-v1';
+function confirmedSwing(order) {
+  const proof=order.inputs;
+  if (order.strategy!=='timing' || order.entryPolicy!==swingPolicy || order.entryMarket!=='UPTREND' || !proof) return false;
+  return ['Buy','Strong Buy'].includes(proof.signal)
+    && finite(proof.fundamental) && proof.fundamental>=7 && finite(proof.opportunity) && proof.opportunity>=7
+    && proof.status==='AVAILABLE' && proof.trend==='ABOVE_SMA200' && finite(proof.close)
+    && [proof.sma36,proof.sma50,proof.sma200].every(level=>finite(level) && proof.close>level)
+    && finite(proof.extension_atr) && proof.extension_atr>=0 && proof.extension_atr<=3;
+}
 function stepPaper(book,snapshot,sample,now) {
   if(sample.snapshot!==snapshot.current || now-sample.sampled>300 || sample.sampled>now)return;
   const current=q=>q && q.start<=q.at && q.at<=now && now<q.end && now-q.at<=300 && finite(q.price) && q.price>0;
   const today=new Date(now*1000).toISOString().slice(0,10);
   for(const o of snapshot.paper?.orders || []){
     const expiry=Date.parse(o.inputs?.signalExpiry)/1000;
-    if(o.status!=='Pending' || !Object.hasOwn(snapshot.builds,o.run) || o.expires<today || !finite(expiry) || expiry<now)continue;
+    if(o.status!=='Pending' || !Object.hasOwn(snapshot.builds,o.run) || o.expires<today)continue;
+    if(o.side==='Buy' && (!confirmedSwing(o) || !finite(expiry) || expiry<now))continue;
+    const account=book.accounts[o.strategy];
+    if (!account) continue;
     const id=[o.id,o.run,o.ticker,o.side].join('|');
     if(book.fills[id])continue;
     const armed=book.armed[id] ??= now;
@@ -169,7 +182,7 @@ function stepPaper(book,snapshot,sample,now) {
     if(!current(q) || q.at<=Math.max(armed,Date.parse(o.submitted)/1000) || q.currency!==o.currency)continue;
     if(!['EUR','USD'].includes(o.currency) || (o.currency==='USD' && (!current(fx) || Math.abs(fx.at-q.at)>300)))continue;
     const rate=o.currency==='EUR'?1:fx.price;
-    const account=book.accounts[o.strategy], held=account.holdings;
+    const held=account.holdings;
     let euros,shares;
     if(o.side==='Buy'){
       euros=o.euros;

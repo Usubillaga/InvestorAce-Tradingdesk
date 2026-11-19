@@ -47,7 +47,7 @@ const navItems = [
 ];
 const filters = [['all','Alle'],['open','Offene Trades'],['closed','Abgeschlossene'],['review','Review erforderlich'],['error','Datenfehler'],['conflict','Build-Konflikte']];
 const stages = [['backtest','Backtest'],['frozen','Frozen-OOS'],['paper','Paper-Trading'],['live','Live-Beobachtung']];
-const statusNames = {Open:'Offen', Pending:'Ausstehend', Filled:'Ausgeführt', Rejected:'Abgelehnt', Expired:'Abgelaufen', Cancelled:'Storniert', Planned:'Geplant', Closed:'Abgeschlossen'};
+const statusNames = {Open:'Offen', Pending:'Ausstehend', Blocked:'Einstieg gesperrt', Filled:'Ausgeführt', Rejected:'Abgelehnt', Expired:'Abgelaufen', Cancelled:'Storniert', Planned:'Geplant', Closed:'Abgeschlossen'};
 const defaults = {page:'overview', evidence:'backtest', account:'all', window:0, mode:'trades', journalSource:'paper', filter:{}, queries:{}, regime:'REFLATION'};
 let data;
 let local = {trades:[], reviews:[], changes:[], rejected:[]};
@@ -114,16 +114,27 @@ function reviewFor(id) {
   return exact || (legacyIssue && local.reviews.find(r=>r.target==='source-issue-0'));
 }
 const issues = () => [...data.issues, ...local.rejected];
-const modelOrders = () => [...(data.paper?.orders || []), ...(data.paper?.twins || []).flatMap(t=>t.orders)];
+const paperOrders = () => (data.paper?.orders || []).map(order =>
+  order.status==='Pending' && order.side==='Buy' && !confirmedSwing(order)
+    ? {...order, status:'Blocked', detail:'Einstieg nur bei bestätigter fundamentaler und technischer Übereinstimmung.'} : order);
+const modelOrders = () => [...paperOrders(), ...(data.paper?.twins || []).flatMap(t=>t.orders)];
 const validLive = () => local.trades.filter(t=>Object.hasOwn(data.builds,t.run));
 const allTrades = () => [...modelOrders(), ...validLive()];
 const journalTrades = () => state.journalSource==='paper' ? modelOrders() : validLive();
-const openCount = () => (data.paper?.orders || []).filter(o=>o.status==='Pending').length;
+const openCount = () => paperOrders().filter(o=>o.status==='Pending').length;
 const asOf = () => data.paper?.decisions.at(-1);
 const paperStatus = 'Simulation · nachgerechnet';
 const localStatus = 'Manuell · Quellenprüfung offen';
 
-function exposure(accounts = data.paper?.accounts || []) {
+function swingExposure(account) {
+  const buys=paperOrders().filter(o=>o.strategy===account.key && o.status==='Pending' && o.side==='Buy');
+  const pendingCapital=buys.reduce((total,o)=>total+o.euros,0);
+  const difference=account.pendingCapital-pendingCapital;
+  const target=finite(account.target) && account.equity>0
+    ? account.target-100*difference/account.equity : account.target;
+  return {...account, pendingCapital, target};
+}
+function exposure(accounts = (data.paper?.accounts || []).map(swingExposure)) {
   if (!accounts.length) return empty('Modelljournal offen','Exposure erscheint nach einer vollständigen, verifizierten Entscheidung.');
   return `<div class="chart"><div class="chart-head"><div class="legend"><span><i class="swatch"></i> Ist</span><span><i class="swatch target"></i> Ziel</span></div>${badge('Simulation','info')}</div>
   ${accounts.map(a=>`<div class="chart-row"><strong>${esc(a.name)}</strong><div class="track" aria-hidden="true"><i class="target-fill" style="width:${Math.max(0,Math.min(100,a.target||0))}%"></i><i class="actual-fill" style="width:${Math.max(0,Math.min(100,a.actual||0))}%"></i></div><span class="nums">${num(a.actual,'pct',paperStatus)} <span class="muted">/</span> <em>${num(a.target,'pct',paperStatus)}</em></span></div>`).join('')}
@@ -154,7 +165,7 @@ function overview() {
   </div>${marketPanel()}${sessionBook()}<div class="grid-main"><article class="panel">${panelHead('Paper-Exposure','Ziel- und Ist-Exposure je Modellkonto','<a class="button small" href="#paper">Paper-Report</a>')}${exposure()}</article>
   <article class="panel">${panelHead('Evidenzstand','Datenstatus je Prüfbereich')}${evidenceList()}</article></div>
   ${issueCount ? notice(`<strong>Journalprüfung.</strong> ${n(issueCount)} isolierte Quelle(n). <button data-action="checks" type="button">Prüfliste öffnen</button>.`) : ''}
-  ${tradePanel('Paper-Orders','Simulierte Orders aus dem verifizierten Modelljournal',data.paper?.orders || [], 'overview',8)}`;
+  ${tradePanel('Paper-Orders','Simulierte Orders aus dem verifizierten Modelljournal',paperOrders(), 'overview',8)}`;
 }
 function matches(t, filter) {
   if (filter==='open') return ['Pending','Open','Planned'].includes(t.status);
@@ -222,9 +233,9 @@ function decisionsPanel(title,list,sub='Offene Fragen und nächste dokumentierte
 function paperPage() {
   const p = data.paper;
   const d = asOf();
-  const selection = (p?.accounts || []).filter(a=>state.account==='all' || a.key===state.account);
+  const selection = (p?.accounts || []).filter(a=>state.account==='all' || a.key===state.account).map(swingExposure);
   const names = [['all','Alle Konten'],...Object.entries(strategyNames).slice(0,3)];
-  const selectedOrders = (p?.orders || []).filter(t=>state.account==='all' || t.strategy===state.account);
+  const selectedOrders = paperOrders().filter(t=>state.account==='all' || t.strategy===state.account);
   const holdings = (p?.positions || []).filter(t=>state.account==='all' || t.strategy===state.account);
   const head = header('Paper-Trading','Kontostand und Orders werden aus dem archivierten Entscheidungsverlauf nachgerechnet.',link(data.pages.paper,'Originalbericht'),'Modellsimulation');
   const summary = selection.map(a=>`<article class="panel panel-pad"><h3>${esc(a.name)}</h3><div class="fine">${badge(paperStatus,'good')} · ${day(a.session)}</div><div class="details" style="padding:12px 0 0">${kv([['Kontowert',eur(a.equity)],['Cash',eur(a.cash)],['P&L',eur(a.pnl)],['Ist-Exposure',pct(a.actual)],['Ziel-Exposure',pct(a.target)],['Kauforders',eur(a.pendingCapital)],['Gebühren',eur(a.fees)],['Umsatz',eur(a.turnover)],['Kurslücken',a.gaps.join(', ') || 'Keine im Journal']])}${button('Entscheidungs-Build','build','small',`data-key="${esc(a.run)}"`)}</div></article>`).join('');
@@ -243,10 +254,11 @@ function paperPage() {
 function paperRules() {
   return `<article class="panel">${panelHead('Modellregeln und Eingabedaten','Codex Paper-Ledger v1 · Opportunity-Modellstand aus dem Entscheidungs-Build',link(`${data.source}/codex_trading.py`,'Quellcode'))}
   <div class="details"><ul class="list">
-  <li><b>Fundamentals</b> verwendet den archivierten fundamentalen Teilscore. <b>Opportunity</b> nutzt den Gesamtscore plus Buy oder Strong Buy. Einstieg ab Score 7, Verkauf unter 6,5.</li>
-  <li><b>Opportunity + Timing</b> verlangt zusätzlich S&P-Aufwärtstrend, Schluss über SMA 36/50/200 und 0 bis 3 ATR Extension. Der Timing-Exit erfolgt unter SMA 200. Die Regeln sind Simulationsparameter.</li>
+  <li><b>Fundamentals</b> und <b>Opportunity</b> zeigen den Verlauf der Vergleichskonten. Neue Einstiege sind gesperrt. Offene Positionen können den Ausstiegsregeln folgen.</li>
+  <li><b>Opportunity + Timing</b> verlangt Fundamental- und Opportunity-Score ab 7 mit Buy oder Strong Buy, einen S&amp;P-500-Aufwärtstrend, einen Schluss über SMA 36/50/200 und 0 bis 3 ATR Abstand. Verkauf bei einem Score unter 6,5 oder bestätigtem Schluss unter SMA 200.</li>
   <li>Je Konto 10.000 € Startkapital, 12 % Zielbudget pro Kauf, höchstens acht Positionen und zwei je Sektor. Risiko am Stop und feste Kursziele bleiben offen, sofern kein Wert im jeweiligen Entscheidungsmodell vorliegt.</li>
   <li>Gebrochene Stücke zum nächsten verfügbaren Schluss nach dem Entscheidungstag in UTC, sieben Kalendertage Ordergültigkeit, 0,10 % Gebühr je Fill, lokale Total Returns und datierter EUR/USD-Kurs.</li></ul>
+  <p><a href="https://github.com/Usubillaga/InvestorAce/blob/main/docs/analysis/swing-confirmation-2026-11-20.md" target="_blank" rel="noopener">Swing-Backtest · 11 Sitzungen · Pilot</a></p>
   <p>Die Nachrechnung verwendet den Code des Archiv-Commits und die Eingaben der verifizierten Entscheidungs-Builds. Die Regelversion des Paper-Ledgers und die archivierte Opportunity-Version stehen im Trade-Detail.</p></div></article>`;
 }
 function paired() {
@@ -407,7 +419,7 @@ function showTrade(id) {
   ['Zielbudget / Exposure',t.manual?pct(t.targetExposure):finite(t.budgetPct)?`${pct(t.budgetPct)} des Kontowerts · Modellparameter`:'Offen'],
   ['Ist-Gewicht der Position',t.manual?pct(t.actualExposure):pct(position?.weight)],[sell?'Realisiertes P&L':position?'Offenes P&L':'P&L',eur(pnl)],['Risiko am Stop',eur(t.risk)],
   ['Fill-Tag',day(t.day)],['EUR/USD am Fill',finite(t.fx)?n(t.fx):'Offen'],['Order gültig bis',day(t.expires)],['Entscheidung',t.decision || t.reason],
-  ['Review',review?.result || 'Review erforderlich']])}
+  ['Review',review?.result || 'Review erforderlich'],['Orderhinweis',t.detail]])}
   <h3>Eingabedaten · ${t.manual?'Manuell, Prüfung offen':'Archivierter Entscheidungssnapshot'}</h3>
   ${t.manual ? kv([['Quelle',t.inputSource],['Annahmen',t.assumption]]) : kv([
     ['Opportunity-Modell',i.scoreVersion],['Basisscore',n(i.fundamental)],['Opportunity',n(i.opportunity)],['Quote',time(i.quote_observed_at)],
@@ -634,9 +646,9 @@ function repaintTable(key) {
   const el = $('#table-result');
   if (!el) return;
   const output = {
-    overview:()=>tradeRows(data.paper?.orders || [],key,8),
+    overview:()=>tradeRows(paperOrders(),key,8),
     active:()=>tradeRows(validLive(),key,Infinity),
-    paper:()=>tradeRows((data.paper?.orders || []).filter(t=>state.account==='all' || t.strategy===state.account),key,Infinity),
+    paper:()=>tradeRows(paperOrders().filter(t=>state.account==='all' || t.strategy===state.account),key,Infinity),
     journal:()=>tradeRows(journalTrades(),key,Infinity),
     score:scoreRows,checks:checkRows
   };

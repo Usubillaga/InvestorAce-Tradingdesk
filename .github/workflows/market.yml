@@ -41,7 +41,7 @@ jobs:
         if: steps.archive.outputs.changed == 'true' && steps.saved.outputs.cache-hit != 'true'
         env:
           DATA_REVISION: ${{ steps.archive.outputs.revision }}
-          RULE_REVISION: cd159b5e7d8b455dfafd0220fcd4027f40c5e09f
+          RULE_REVISION: 0957f422a4031b93eff5d46b4c9fc2b842b4e837
         run: |
           git clone --quiet --no-checkout https://github.com/Usubillaga/InvestorAce.git "$RUNNER_TEMP/ia-data"
           git -C "$RUNNER_TEMP/ia-data" checkout --quiet --detach "$DATA_REVISION"

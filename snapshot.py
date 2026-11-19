@@ -117,7 +117,7 @@ def paper(path, builds, engine, source):
         build = get_build(builds, d['run'])
         at = datetime.fromisoformat(d['at'])
         need(at.utcoffset() == timezone.utc.utcoffset(None), 'Entscheidungszeitpunkt ist nicht in UTC.')
-        need(engine.advance(replay, build, at), 'Entscheidung liegt außerhalb des gültigen Sitzungs- oder Build-Fensters.')
+        need(engine.advance(replay, build, at, entry_policy=d.get('entry_policy')), 'Entscheidung liegt außerhalb des gültigen Sitzungs- oder Build-Fensters.')
         need(same(d, replay['decisions'][-1]), 'Journalentscheidung stimmt nicht mit der Nachrechnung aus ihrem Build überein.')
         by_time[d['at']] = d
         for key, account in replay['accounts'].items():
@@ -163,6 +163,7 @@ def paper(path, builds, engine, source):
                 realized = order['euros'] * (1 - engine.COST) - entry['euros'] * (1 + engine.COST)
             projected = dict(id=order_id, strategy=key, run=d['run'], session=d['session'],
                              model=inputs['scoreVersion'], inputs=inputs, history=history, realized=realized,
+                             entryPolicy=order.get('entry_policy'), entryMarket=d.get('market'),
                              budgetPct=12 if order['side'] == 'Buy' else None,
                              executionRun=event['run'] if order['status'] == 'Filled' else None,
                              **select(order, 'submitted ticker side status expires day currency euros reason detail close fx symbol'))
