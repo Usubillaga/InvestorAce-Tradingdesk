@@ -27,7 +27,7 @@ def fetch_quote(symbol):
             bars = result['indicators']['quote'][0]
             path = [[t, c] for t, c in zip(result.get('timestamp', []), bars.get('close', []))
                     if positive(c) and period['start'] <= t <= m['regularMarketTime']]
-            return dict(price=price, at=m['regularMarketTime'], start=period['start'], end=period['end'],
+            return dict(name=m.get('longName') or m.get('shortName'), price=price, at=m['regularMarketTime'], start=period['start'], end=period['end'],
                         currency=m.get('currency'), previous=m.get('chartPreviousClose'),
                         high=m.get('regularMarketDayHigh'), low=m.get('regularMarketDayLow'), path=path)
         except (OSError, ValueError, TypeError, KeyError, IndexError):

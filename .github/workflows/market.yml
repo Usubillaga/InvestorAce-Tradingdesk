@@ -23,6 +23,36 @@ jobs:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
+      - name: Identify published InvestorAce data
+        id: archive
+        run: |
+          revision=$(git ls-remote --exit-code https://github.com/Usubillaga/InvestorAce.git refs/heads/main | cut -f1)
+          test "${#revision}" = 40
+          echo "revision=$revision" >> "$GITHUB_OUTPUT"
+          bundled=$(python3 -c "import json; print(json.load(open('dist/snapshot.json'))['commit'])")
+          if [ "$revision" != "$bundled" ]; then echo "changed=true" >> "$GITHUB_OUTPUT"; fi
+      - uses: actions/cache@v4
+        id: saved
+        if: steps.archive.outputs.changed == 'true'
+        with:
+          path: cached-snapshot.json
+          key: archive-v1-${{ hashFiles('snapshot.py') }}-${{ steps.archive.outputs.revision }}
+      - name: Replay fresh data with the reviewed rule code
+        if: steps.archive.outputs.changed == 'true' && steps.saved.outputs.cache-hit != 'true'
+        env:
+          DATA_REVISION: ${{ steps.archive.outputs.revision }}
+          RULE_REVISION: cd159b5e7d8b455dfafd0220fcd4027f40c5e09f
+        run: |
+          git clone --quiet --no-checkout https://github.com/Usubillaga/InvestorAce.git "$RUNNER_TEMP/ia-data"
+          git -C "$RUNNER_TEMP/ia-data" checkout --quiet --detach "$DATA_REVISION"
+          git -C "$RUNNER_TEMP/ia-data" worktree add --quiet --detach "$RUNNER_TEMP/ia-rules" "$RULE_REVISION"
+          python3 -S snapshot.py "$RUNNER_TEMP/ia-data" --rules "$RUNNER_TEMP/ia-rules"
+          cp dist/snapshot.json cached-snapshot.json
+      - name: Use verified archive output
+        if: steps.archive.outputs.changed == 'true'
+        run: |
+          cp cached-snapshot.json dist/snapshot.json
+          python3 -c "import json; s=json.load(open('dist/snapshot.json')); assert s['current'] in s['builds'] and s['scorecard'] and s.get('market')"
       - name: Fetch public market prices using the Python standard library
         run: python3 session_feed.py
       - name: Package static web assets

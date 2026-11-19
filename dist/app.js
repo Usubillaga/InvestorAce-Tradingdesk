@@ -326,9 +326,9 @@ function signalState(opp, now=Date.now()) {
 }
 function scoreRows() {
   const q = (state.queries.score || '').trim().toLowerCase();
-  const records = data.scorecard.filter(r=>`${r.ticker} ${r.name} ${r.sector}`.toLowerCase().includes(q));
+  const records = data.scorecard.filter(r=>`${r.ticker} ${instrumentName(r)} ${r.sector}`.toLowerCase().includes(q));
   return cells(['Ticker','Unternehmen','Fundamental','Opportunity','Signal im Archiv','Regime-Fit','Analystenstatus'],records.map(r=>[
-    `<button class="table-link ticker" data-action="score" data-key="${esc(r.ticker)}">${esc(r.ticker)}</button>`,esc(present(r.name)),
+    `<button class="table-link ticker" data-action="score" data-key="${esc(r.ticker)}">${esc(r.ticker)}</button>`,esc(instrumentName(r)),
     num(r.score,'n','Archivierter Fundamental-Score · Modell'),num(r.opportunity.score,'n','Archivierter Opportunity-Score · Modell'),
     `${esc(present(r.opportunity.label))}<div class="fine">${esc(signalState(r.opportunity))}</div>`,num(r.regime[state.regime],'n','Archivierter Regime-Fit · Modell'),
     badge(r.review==='REVIEW_REQUIRED'?'Review erforderlich':present(r.review),r.review==='REVIEW_REQUIRED'?'warn':'soft')]));
@@ -397,7 +397,7 @@ function showTrade(id) {
   const buy = ['Buy','BUY'].includes(t.side);
   const sell = ['Sell','SELL'].includes(t.side);
   const rule = t.manual ? t.model : t.strategy.startsWith('v1.') ? t.model : 'Codex Paper-Ledger v1';
-  const proof = t.manual ? '' : link(`${data.source}/${t.strategy.startsWith('v1.')?'active_rules.py':'codex_trading.py'}`,'Regelcode im Archiv-Commit');
+  const proof = t.manual ? '' : link(`https://github.com/Usubillaga/InvestorAce/blob/${data.paper.ruleCommit}/${t.strategy.startsWith('v1.')?'active_rules.py':'codex_trading.py'}`,'Regelcode im Archiv-Commit');
   show(`${t.ticker} · ${strategy(t.strategy)}`,`${badge(t.manual?localStatus:paperStatus,t.manual?'warn':'good')}
   ${kv([['Modellversion',t.model],['Regelversion',rule],
   ['Status',statusNames[t.status]],['Zeitpunkt',time(t.observed || t.submitted)],['Signal',t.manual?t.signal:i.signal],
@@ -435,7 +435,7 @@ function orderHistory(history) {
 function showScore(ticker) {
   const r = data.scorecard.find(x=>x.ticker===ticker);
   if (!r) return;
-  show(`${r.ticker} · ${r.name}`,`${badge('Research · Berichts-Build geprüft','info')}
+  show(`${r.ticker} · ${instrumentName(r)}`,`${badge('Research · Berichts-Build geprüft','info')}
   ${kv([['Fundamental-Score',n(r.score)],['Opportunity-Score',n(r.opportunity.score)],['Signal im Archiv',r.opportunity.label],
     ['Signalgültigkeit',signalState(r.opportunity)],['Unternehmensprofil',r.opportunity.profile?.tags?.join(', ')],
     ['Modell',r.opportunity.version || r.opportunity.schema],['Analystenstatus',r.review],['Kurs',finite(r.price)?`${n(r.price)} ${r.currency}`:'Offen'],

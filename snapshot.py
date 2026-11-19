@@ -268,8 +268,10 @@ def backtest(path):
     return dict(generated=b['generated_at'], schema=b['schema'], windows=windows)
 
 
-def generate(root):
-    sys.path.insert(0, str(root))
+def generate(root, rules=None):
+    rules = rules or root
+    sys.path.insert(0, str(rules))
+    rule_revision = subprocess.check_output(['git', '-C', str(rules), 'rev-parse', 'HEAD'], text=True).strip()
     evidence = importlib.import_module('evidence')
     evaluator = importlib.import_module('paper_portfolio')
     git = ['git', '-C', str(root)]
@@ -311,7 +313,7 @@ def generate(root):
                              history={symbol: sorted(rows.items())[-90:] for symbol, rows in history.items()})
     try:
         engine = importlib.import_module('codex_trading')
-        out['paper'], comparison_issue = paper(root/'history'/'codex_trading.json', builds, engine, rev)
+        out['paper'], comparison_issue = paper(root/'history'/'codex_trading.json', builds, engine, rule_revision)
         if comparison_issue:
             out['issues'].append(comparison_issue)
     except (ImportError, LookupError, *ERRORS) as exc:
@@ -345,9 +347,15 @@ def generate(root):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('checkout', type=Path)
+    parser.add_argument('--rules', type=Path, help='Use this trusted checkout for offline replay code')
     args = parser.parse_args()
+    if args.rules:
+        # autoscore imports Yahoo at module load. Archived replay only calls its pure score functions.
+        # An unavailable download method must fail instead of fetching revised historical inputs.
+        import types
+        sys.modules['yfinance'] = types.ModuleType('offline_yahoo_unavailable')
     target = Path(__file__).resolve().parent/'dist'/'snapshot.json'
-    result = generate(args.checkout.resolve())
+    result = generate(args.checkout.resolve(), args.rules.resolve() if args.rules else None)
     with NamedTemporaryFile(mode='w', encoding='utf-8', dir=target.parent, delete=False) as f:
         json.dump(result, f, ensure_ascii=False, allow_nan=False, separators=(',',':'))
     os.chmod(f.name, 0o644)

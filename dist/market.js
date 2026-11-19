@@ -41,9 +41,9 @@ function marketPanel() {
   const intraday=chartMode==='session' && q?.path?.length>1;
   const points=intraday?q.path:archive;
   const amplitude=q?.previous>0 && finite(q.high) && finite(q.low)?100*(q.high-q.low)/q.previous:null;
-  return `<div class="market-layout"><article class="panel panel-pad"><div class="market-heading"><div><h2>${esc(m?.name || stock?.name || instrument)}</h2>
+  return `<div class="market-layout"><article class="panel panel-pad"><div class="market-heading"><div><h2>${esc(m?.name || (stock && instrumentName(stock)) || instrument)}</h2>
   <strong class="market-price">${n(q?.price ?? m?.close)} <small>${esc(q?.currency || '')}</small></strong> ${badge(quoteState(q),freshQuote(q)?'good':'soft')}</div>
-  <select aria-label="Markt auswählen" id="market-symbol">${[...moves.map(x=>[x.symbol,x.name]),...(stock?[[stock.symbol,stock.name]]:[])].map(([k,v])=>`<option value="${esc(k)}" ${instrument===k?'selected':''}>${esc(v)}</option>`).join('')}</select></div>
+  <select aria-label="Markt auswählen" id="market-symbol">${[...moves.map(x=>[x.symbol,x.name]),...(stock?[[stock.symbol,instrumentName(stock)]]:[])].map(([k,v])=>`<option value="${esc(k)}" ${instrument===k?'selected':''}>${esc(v)}</option>`).join('')}</select></div>
   <p>Vortag ${pct(q?change(q):m?.change_pct)} · Tagesamplitude ${pct(amplitude)} · (Hoch − Tief) / Vortagsschluss</p>
   <div class="controls">${button('Sitzung','plot-mode','small','data-key="session"')} ${button('Archiv','plot-mode','small','data-key="archive"')}</div>
   ${marketPlot(points)}<div class="fine">${intraday?'5-Minuten-Kurse · Yahoo Finance': 'Archivierte Kurse · InvestorAce'} · Kursstand ${q?quoteTime(q.at):day(m?.date)}</div></article>${breadthBlock()}</div>
@@ -74,6 +74,7 @@ function sessionBook() {
   <div class="details"><p>Bei geöffnetem Desk liefern die bestätigten Tagesregeln die Orders. Das Intraday-Konto simuliert zum ersten beobachteten, höchstens fünf Minuten alten regulären Kurs nach Aufnahme der Order. USD-Fills benötigen einen zeitnahen EUR/USD-Kurs. Gebühr je Fill 0,10 %. Offene Orders und abgelaufene Signale erzeugen ohne gültigen Kurs keine Ausführung.</p></div>
   ${fills.length?cells(['Zeit (Berlin)','Wert','Konto','Seite','Kurs','Volumen','Entscheidungs-Build'],fills.map(f=>[quoteTime(f.at),esc(f.ticker),esc(strategy(f.strategy)),esc(f.side),n(f.price)+' '+esc(f.currency),eur(f.euros),link('https://github.com/Usubillaga/InvestorAce/tree/'+encodeURIComponent(f.commit)+'/history/_builds/'+encodeURIComponent(f.run),'Build')])):empty('Noch keine simulierten Intraday-Fills','Das Journal startet prospektiv und erfasst jede Ausführung mit Kurszeit und Entscheidungs-Build.')}</article>`;
 }
+function instrumentName(row) {return row?.name || sessionData?.quotes[row?.symbol]?.name || row?.symbol || row?.ticker || 'Offen';}
 function searchDesk(term) {
   const query=term.trim().toLowerCase();
   if(!query)return '';
@@ -81,7 +82,7 @@ function searchDesk(term) {
   const add=(title,detail,action,key)=>{if((title+' '+detail).toLowerCase().includes(query))rows.push([button(esc(title),action,'small',`data-key="${esc(key)}"`),esc(detail)]);};
   for(const m of data.market?.moves || [])add(m.name,m.symbol+' · Markt','instrument',m.symbol);
   for(const t of allTrades())add(t.ticker,strategy(t.strategy)+' · '+t.status+' · '+(t.reason || t.signal || ''),'trade',t.id);
-  for(const r of data.scorecard){add(r.ticker+' · '+r.name,r.sector+' · '+(r.opportunity.label || '')+' · Scorecard','score',r.ticker);add(r.symbol,r.name+' · Kurschart','instrument',r.symbol);}
+  for(const r of data.scorecard){add(r.ticker+' · '+instrumentName(r),r.sector+' · '+(r.opportunity.label || '')+' · Scorecard','score',r.ticker);add(r.symbol,instrumentName(r)+' · Kurschart','instrument',r.symbol);}
   return cells(['Treffer','Kontext'],rows);
 }
 async function refreshSession() {
@@ -92,6 +93,12 @@ async function refreshSession() {
       if(!response.ok)continue;
       const next=await response.json();
       if(next.version!==1 || !next.quotes || Object.hasOwn(next,'ledger'))continue;
+      if(next.snapshot!==data.current){
+        const latest=await loadDeskSnapshot();
+        if(latest.current!==next.snapshot)continue;
+        data=latest;
+        state.regime=data.macro?.regime || state.regime;
+      }
       if(!sessionData || next.sampled>=sessionData.sampled)sessionData=next;
       if(data.current===next.snapshot)await updateLocalBook(next);
       break;
