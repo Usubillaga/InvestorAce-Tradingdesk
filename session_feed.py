@@ -1,9 +1,11 @@
 """Publish timestamped quotes for the public InvestorAce universe."""
+import hashlib
 import json
 import math
 import re
 import time
 from concurrent.futures import ThreadPoolExecutor
+from datetime import date
 from pathlib import Path
 from urllib.parse import quote
 from urllib.request import Request, urlopen
@@ -67,9 +69,61 @@ def fetch_scanner(snapshot, known):
     return {**scanner, 'revision': revision}
 
 
+def short_positions(raw, snapshot):
+    current = snapshot['current']
+    digest = snapshot['builds'][current]['manifest']['observation_sha256']
+    report = json.loads(raw)
+    canonical = json.dumps(report, sort_keys=True, separators=(',', ':'), allow_nan=False)
+    if hashlib.sha256(canonical.encode('utf-8')).hexdigest() != digest:
+        raise ValueError('Archive observation hash mismatch')
+    captured = date.fromisoformat(snapshot['captured'][:10])
+    rows = {}
+    for stock in snapshot['scorecard']:
+        position = (report.get(stock['ticker'], {}).get('opportunity') or {}).get('short_interest')
+        if not isinstance(position, dict):
+            continue
+        settlement = position.get('settlement_date')
+        try:
+            reported = date.fromisoformat(settlement)
+        except (TypeError, ValueError):
+            continue
+        if reported > captured:
+            continue
+        shares, prior = position.get('shares'), position.get('prior_month_shares')
+        # Match the source report's guard against anomalous provider data.
+        if type(shares) in (int, float) and positive(prior) and prior >= 1e6 and shares < 0.05 * prior:
+            rows[stock['ticker']] = dict(status='REVIEW_REQUIRED', settlement_date=settlement)
+            continue
+        fields = ('shares', 'pct_float', 'days_to_cover', 'change_pct', 'settlement_date', 'source')
+        rows[stock['ticker']] = dict(status='REPORTED', **{field: position.get(field) for field in fields})
+    return dict(snapshot=current, rows=rows)
+
+
+def fetch_positions(snapshot, seed):
+    if seed and seed['snapshot'] == snapshot['current']:
+        return seed
+    revision, build = snapshot['commit'], snapshot['current']
+    if not re.fullmatch(r'[0-9a-f]{40}', revision) or not re.fullmatch(r'[0-9]{8}T[0-9]{12}-[0-9a-f]{32}', build):
+        raise ValueError('Unexpected archive coordinates')
+    path = f'{revision}/history/_builds/{build}/observation.json'
+    url = f'https://raw.githubusercontent.com/Usubillaga/InvestorAce/{path}'
+    with urlopen(Request(url, headers={'User-Agent': 'InvestorAce-TradingDesk'}), timeout=15) as response:
+        return short_positions(response.read(), snapshot)
+
+
 def main():
     snapshot = json.loads((ROOT/'dist/snapshot.json').read_text())
     target = ROOT/'dist/quotes.json'
+    position_file = ROOT/'dist/positioning.json'
+    try:
+        seed = json.loads(position_file.read_text()) if position_file.exists() else None
+        positioning = fetch_positions(snapshot, seed)
+    except (OSError, ValueError, KeyError, TypeError) as error:
+        print(f'Short-interest data unavailable: {type(error).__name__}')
+    else:
+        temporary = position_file.with_suffix('.tmp')
+        temporary.write_text(json.dumps(positioning, allow_nan=False, separators=(',', ':')))
+        temporary.replace(position_file)
     symbols = {r['symbol'] for r in snapshot['scorecard']} | {m['symbol'] for m in snapshot['market']['moves']} | {'EURUSD=X'}
     try:
         scanner = fetch_scanner(snapshot, {row['symbol'] for row in snapshot['scorecard']})

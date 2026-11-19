@@ -432,6 +432,19 @@ function orderHistory(history) {
       esc(day(fillDay || fill_date)),button('Build','build','small',`data-key="${esc(e.run)}"`)];
   }));
 }
+function shortInterestDetails(position) {
+  const title = '<h3>Short Interest · gemeldete Positionierung</h3>';
+  if (!position) return title+'<p class="fine">Kein datierter Wert im zugehörigen Build.</p>';
+  if (position.status==='REVIEW_REQUIRED') {
+    return title+`<p class="fine">Stichtag ${day(position.settlement_date)} · auffälliger Rückgang im Anbieterwert. Prüfung offen.</p>`;
+  }
+  return title+kv([
+    ['Stichtag',day(position.settlement_date)],['Leerverkaufte Aktien',n(position.shares)],
+    ['Anteil am Streubesitz',pct(position.pct_float)],['Tage zur Eindeckung',n(position.days_to_cover)],
+    ['Veränderung ggü. Vormonat',pct(position.change_pct)],
+    ['Quelle',position.source==='YAHOO_EXCHANGE_REPORTED'?'Yahoo Finance · gemeldeter Börsenwert':position.source]
+  ])+'<p class="fine">Die Positionierung fließt nicht in den Score oder das Einstiegssignal ein.</p>';
+}
 function showScore(ticker) {
   const r = data.scorecard.find(x=>x.ticker===ticker);
   if (!r) return;
@@ -440,6 +453,7 @@ function showScore(ticker) {
     ['Signalgültigkeit',signalState(r.opportunity)],['Unternehmensprofil',r.opportunity.profile?.tags?.join(', ')],
     ['Modell',r.opportunity.version || r.opportunity.schema],['Analystenstatus',r.review],['Kurs',finite(r.price)?`${n(r.price)} ${r.currency}`:'Offen'],
     ['Kursstand',time(r.inputs.quote_observed_at)],['Normalisierung',r.inputs.normalization_status],['Cashflow-Basis',r.inputs.cash_flow_basis]])}
+  ${shortInterestDetails(shortPosition(r.ticker))}
   <h3>Fundamentale Komponenten</h3>${cells(['Komponente','Wert','Gewicht','Beitrag'],r.components.map(c=>[esc(c.label),num(c.value),num(finite(c.nominal_weight)?c.nominal_weight*100:null,'pct'),num(c.contribution)]))}
   <h3>Regime-Fit · archiviertes Modell</h3>${cells(['Regime','Fit','Sektor','Bilanz','Duration','Ausschüttung'],Object.entries(r.regime).map(([k,v])=>[esc(k),num(v),...['sector','balance','duration','payout'].map(c=>num(r.regimeComponents[k]?.[c]))]))}
   <h3>Offene Einwände</h3>${r.issues.length ? `<ul class="list">${r.issues.map(x=>`<li>${esc(x.message)}</li>`).join('')}</ul>` : '<p class="fine">Erfassung offen, falls kein Einwand dokumentiert ist.</p>'}
