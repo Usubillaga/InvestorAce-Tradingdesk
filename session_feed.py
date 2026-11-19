@@ -9,6 +9,7 @@ from urllib.parse import quote
 from urllib.request import Request, urlopen
 
 ROOT = Path(__file__).resolve().parent
+TRADINGVIEW_EXCHANGES = {"Nasdaq": "NASDAQ", "NYSE": "NYSE"}
 
 def positive(v):
     return type(v) in (int, float) and math.isfinite(v) and v > 0
@@ -46,7 +47,10 @@ def scanner_universe(report, known):
         symbol = item.get('yahoo')
         if not isinstance(symbol, str) or not re.fullmatch(r'[A-Z0-9][A-Z0-9.-]{0,16}', symbol):
             continue
-        rows.setdefault(symbol, dict(symbol=symbol, ticker=item.get('ticker') or symbol,
+        ticker = item.get('ticker') or symbol
+        exchange = TRADINGVIEW_EXCHANGES.get(item.get('exchange'))
+        tv_symbol = f'{exchange}:{ticker}' if exchange and re.fullmatch(r'[A-Z0-9]+(?:\.[A-Z0-9]+)?', ticker) else None
+        rows.setdefault(symbol, dict(symbol=symbol, ticker=ticker, tradingViewSymbol=tv_symbol,
                         name=item.get('name'), sector=item.get('sector'), score=item.get('score'),
                         band=item.get('band'), review=item.get('review_status'),
                         priceDate=item.get('price_date'), added=symbol not in known))

@@ -604,10 +604,14 @@ function download(kind) {
     csv([['Eintrag','Build','Zeitpunkt','Prüfentscheidung','Notiz','Datenstatus'],
       ...payload.reviews.map(r=>[r.target,r.run,r.at,r.result,r.note,'Lokal · manuell']),
       ...payload.reviewCases.map(r=>[r.name,null,r.at,r.kind,r.message,'Isoliert'])]);
-  const url = URL.createObjectURL(new Blob([content],{type:kind==='json'?'application/json':'text/csv;charset=utf-8'}));
+  saveDownload(content, `investorace-${kind}.${kind==='json'?'json':'csv'}`,
+    kind==='json'?'application/json':'text/csv;charset=utf-8');
+}
+function saveDownload(content, filename, type) {
+  const url = URL.createObjectURL(new Blob([content],{type}));
   const anchor = document.createElement('a');
   anchor.href = url;
-  anchor.download = `investorace-${kind}.${kind==='json'?'json':'csv'}`;
+  anchor.download = filename;
   anchor.click();
   setTimeout(()=>URL.revokeObjectURL(url),1000);
   notify('Export erstellt.');
@@ -640,7 +644,7 @@ document.addEventListener('click',e=>{
     filter:()=>{state.filter[key]=value; document.querySelectorAll(`[data-action="filter"][data-key="${key}"]`).forEach(c=>c.setAttribute('aria-pressed',c===b)); repaintTable(key);},
     build:()=>showBuild(key), score:()=>showScore(key), trade:()=>showTrade(key), issue:()=>showIssue(key),
     review:()=>reviewForm(key), 'new-live':()=>liveForm(), 'edit-live':()=>liveForm(key),
-    export:exportForm, download:()=>download(key), import:importForm
+    export:exportForm, download:()=>download(key), 'tradingview-watchlist':downloadTradingViewWatchlist, import:importForm
   };
   actions[action]?.();
 });

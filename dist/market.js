@@ -75,13 +75,23 @@ function sessionBook() {
   ${fills.length?cells(['Zeit (Berlin)','Wert','Konto','Seite','Kurs','Volumen','Entscheidungs-Build'],fills.map(f=>[quoteTime(f.at),esc(f.ticker),esc(strategy(f.strategy)),esc(f.side),n(f.price)+' '+esc(f.currency),eur(f.euros),link('https://github.com/Usubillaga/InvestorAce/tree/'+encodeURIComponent(f.commit)+'/history/_builds/'+encodeURIComponent(f.run),'Build')])):empty('Noch keine simulierten Intraday-Fills','Das Journal startet prospektiv und erfasst jede Ausführung mit Kurszeit und Entscheidungs-Build.')}</article>`;
 }
 function instrumentName(row) {return row?.name || sessionData?.quotes[row?.symbol]?.name || row?.symbol || row?.ticker || 'Offen';}
+function tradingViewWatchlist(rows) {
+  return [...new Set(rows.map(r=>r.tradingViewSymbol).filter(Boolean))];
+}
+function downloadTradingViewWatchlist() {
+  const symbols=tradingViewWatchlist(sessionData?.scanner?.rows || []);
+  if (symbols.length) saveDownload(symbols.join(','),'investorace-tradingview-watchlist.txt','text/plain;charset=utf-8');
+}
 function scannerPage() {
   const scanner=sessionData?.scanner;
   const title=header('Scanner-Universum','Die rangfähigen Treffer des InvestorAce-Marktscanners fließen automatisch in die Kursbeobachtung ein.');
   if(!scanner) return title+empty('Scannerstand ausstehend','Der Kursdienst hat noch keinen passenden Scannerbericht geliefert.');
   const added=scanner.rows.filter(r=>r.added);
-  return title+`<article class="panel">${panelHead(added.length+' zusätzliche Aktien',scanner.rows.length+' rangfähige Treffer · Scan vom '+day(scanner.asOf),link('https://github.com/Usubillaga/InvestorAce/blob/'+encodeURIComponent(scanner.revision)+'/market-scan/latest.json','Scannerquelle'))}
-  <div class="details"><p>${esc(scanner.coverage || '')}</p><p>Das Rating stammt aus dem Scanner. Für eine reale Order braucht der Desk eine Handelsregel, Positionsgröße und Brokeranbindung.</p></div>
+  const watchlist=tradingViewWatchlist(scanner.rows);
+  const source=link('https://github.com/Usubillaga/InvestorAce/blob/'+encodeURIComponent(scanner.revision)+'/market-scan/latest.json','Scannerquelle');
+  const download=watchlist.length ? button('TradingView-Watchlist (.txt)','tradingview-watchlist','small') : '';
+  return title+`<article class="panel">${panelHead(added.length+' zusätzliche Aktien',scanner.rows.length+' rangfähige Treffer · Scan vom '+day(scanner.asOf),download+' '+source)}
+  <div class="details"><p>${esc(scanner.coverage || '')}</p>${watchlist.length ? `<p>TradingView-Export · ${watchlist.length} Titel mit Börsenkürzel · Import im Watchlist-Menü von TradingView</p>` : ''}<p>Das Rating stammt aus dem Scanner. Für eine reale Order braucht der Desk eine Handelsregel, Positionsgröße und Brokeranbindung.</p></div>
   ${cells(['Aktie','Unternehmen','Scanner-Rating','Score / 10','Abdeckung','Letzter Kurs','Kurszeit','Prüfstatus'],scanner.rows.map(r=>{
     const q=sessionData.quotes[r.symbol];
     return [button(esc(r.ticker),'instrument','small',`data-key="${esc(r.symbol)}"`),esc(r.name),esc(r.band),n(r.score),r.added?'Scanner-Erweiterung':'Scorecard',q?n(q.price)+' '+esc(q.currency):'Offen',quoteTime(q?.at),esc(r.review)];
