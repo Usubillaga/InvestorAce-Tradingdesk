@@ -42,7 +42,7 @@ const panelHead = (title,sub='',action='') => `<div class="panel-head"><div><h2>
 const strategyNames = {timing:'Opportunity + Timing', opportunity:'Opportunity', fundamental:'Fundamentals', 'v1.5':'Exit-Experiment v1.5', 'v1.6':'Exit-Experiment v1.6'};
 const strategy = key => strategyNames[key] || present(key);
 const navItems = [
-  ['overview','Übersicht'],['active','Aktives Trading'],['paper','Paper-Trading'],
+  ['overview','Übersicht'],['market','Markt & Intraday'],['active','Aktives Trading'],['paper','Paper-Trading'],
   ['evidence','Modellvergleich'],['score','Scorecard & Regime'],['journal','Journal & Reviews'],
 ];
 const filters = [['all','Alle'],['open','Offene Trades'],['closed','Abgeschlossene'],['review','Review erforderlich'],['error','Datenfehler'],['conflict','Build-Konflikte']];
@@ -151,7 +151,7 @@ function overview() {
   ${stat('Paper-Konten',known?n(data.paper.accounts.length):'Offen',known?paperStatus:'Datenstatus offen',known?'good':'warn',known?'Getrennt finanziert':'Journal in Prüfung','wallet')}
   ${stat('Offene Paper-Orders',known?n(openCount()):'Offen',known?paperStatus:'Datenstatus offen',known?'good':'warn',known?`Signalstand ${day(decisions.session)}`:'Entscheidungen offen','clock','accent')}
   ${stat('Journal-Prüffälle',n(issueCount),'Prüfliste · Buildstand','soft',issueCount?'Isolierte Datensätze':'Keine isolierten Datensätze','shield',issueCount?'open':'')}
-  </div><div class="grid-main"><article class="panel">${panelHead('Paper-Exposure','Ziel- und Ist-Exposure je Modellkonto','<a class="button small" href="#paper">Paper-Report</a>')}${exposure()}</article>
+  </div>${marketPanel()}${sessionBook()}<div class="grid-main"><article class="panel">${panelHead('Paper-Exposure','Ziel- und Ist-Exposure je Modellkonto','<a class="button small" href="#paper">Paper-Report</a>')}${exposure()}</article>
   <article class="panel">${panelHead('Evidenzstand','Datenstatus je Prüfbereich')}${evidenceList()}</article></div>
   ${issueCount ? notice(`<strong>Journalprüfung.</strong> ${n(issueCount)} isolierte Quelle(n). <button data-action="checks" type="button">Prüfliste öffnen</button>.`) : ''}
   ${tradePanel('Paper-Orders','Simulierte Orders aus dem verifizierten Modelljournal',data.paper?.orders || [], 'overview',8)}`;
@@ -370,7 +370,7 @@ function paint(focus=false) {
   $('#export-top').innerHTML = icon('download')+' Exportieren';
   $('#original').innerHTML = icon('link')+' InvestorAce Hauptreport';
   $('#footer-data').textContent = data.captured ? `Archivierter Datenstand · ${time(data.captured)}` : 'Archivierter Datenstand · offen';
-  main.innerHTML = ({overview,active:live,paper:paperPage,evidence:evidencePage,score:scorePage,journal})[state.page]();
+  main.innerHTML = ({overview,market:()=>header('Markt & Intraday','Indexkurse, Marktbreite und regelbasierte Paper-Ausführungen.')+marketPanel()+sessionBook(),active:live,paper:paperPage,evidence:evidencePage,score:scorePage,journal})[state.page]();
   if (focus) main.focus({preventScroll:true});
 }
 function show(title, content) {
@@ -633,6 +633,8 @@ document.addEventListener('click',e=>{
   if (!b || !data) return;
   const {action,key,value} = b.dataset;
   const actions = {
+    instrument:()=>{instrument=key;chartMode='session';$('#desk-search').value='';$('#desk-results').hidden=true;go('#market');},
+    'plot-mode':()=>{chartMode=key;paint();},
     stage:()=>go('#evidence/'+key), account:()=>{state.account=key;paint();},
     mode:()=>go('#journal/'+key), 'journal-source':()=>{state.journalSource=key;state.filter.journal='all';paint();}, checks:()=>go('#journal/checks'),
     filter:()=>{state.filter[key]=value; document.querySelectorAll(`[data-action="filter"][data-key="${key}"]`).forEach(c=>c.setAttribute('aria-pressed',c===b)); repaintTable(key);},
@@ -643,12 +645,14 @@ document.addEventListener('click',e=>{
   actions[action]?.();
 });
 document.addEventListener('input',e=>{
+  if(e.target.id==='desk-search' && data){const el=$('#desk-results');el.innerHTML=searchDesk(e.target.value);el.hidden=!e.target.value.trim();return;}
   const key = e.target.dataset.search;
   if (!key) return;
   state.queries[key] = e.target.value;
   repaintTable(key);
 });
 document.addEventListener('change',e=>{
+  if(e.target.id==='market-symbol'){instrument=e.target.value;paint();return;}
   const key = e.target.dataset.select;
   if (key==='window') { state.window=Number(e.target.value); paint(); $('#window')?.focus(); }
   if (key==='regime') { state.regime=e.target.value; repaintTable('score'); }
@@ -666,11 +670,17 @@ window.addEventListener('hashchange',()=>{
 });
 $('#build-top').addEventListener('click',()=>data && showBuild(data.current));
 $('#export-top').addEventListener('click',()=>data && exportForm());
-fetch('snapshot.json').then(r=>{
-  if (!r.ok) throw new Error('snapshot');
-  return r.json();
-}).then(s=>{
-  data = s; state.regime = data.macro?.regime || 'REFLATION'; readLocal(); route(); paint();
+async function loadDeskSnapshot() {
+  for(const url of ['snapshot.json']){
+    try {
+      const r=await fetch(url,{cache:'no-store',signal:AbortSignal.timeout(6000)});
+      if(r.ok){const s=await r.json();if(s.market && s.builds?.[s.current])return s;}
+    } catch {}
+  }
+  throw new Error('snapshot');
+}
+loadDeskSnapshot().then(s=>{
+  data = s; state.regime = data.macro?.regime || 'REFLATION'; readLocal(); route(); paint(); refreshSession(); setInterval(refreshSession, 60000);
 }).catch(()=>{
   main.innerHTML = notice('Der archivierte Datensatz konnte nicht geladen werden. <a href="https://usubillaga.github.io/InvestorAce/">InvestorAce-Hauptreport öffnen</a>.');
 });

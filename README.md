@@ -29,3 +29,9 @@ The generator resolves the current Build using the repository's existing validat
 Frozen portfolio weights and dates are checked against their first Git revision. The first available archived closing price for each session is used for evaluation. The regular model Paper report and the retrospective Backtest are presented separately.
 
 The Desk uses a versioned archive snapshot and has no broker connection. Rebuild `dist/snapshot.json` to incorporate another InvestorAce archive revision.
+
+## Market session
+
+The Market session workflow samples Yahoo Finance on a five-minute weekday schedule covering European and US regular sessions. GitHub may queue or skip scheduled runs. The site polls the latest published sample once per minute and displays exchange timestamps. Intraday breadth counts covered InvestorAce listings with a fresh regular-session price relative to their previous close. Daily amplitude uses the session high minus low divided by the previous close.
+
+While the Desk is open, its browser-local intraday paper accounts mirror pending orders from the verified daily model. Each starts with EUR 10,000. The simulator requires a subsequent fresh regular-session quote, a valid decision signal, and fresh EUR/USD for USD orders. Simulations use fractional shares, the model order budget and a 0.10% fee. Execution at the observed indicative price omits spread, order-book depth and slippage. The dated daily-close accounts remain the reference experiment. The public feed contains instrument quotes. Browser cash balances, holdings and fills are stored locally. Suspended and closed tabs miss executions.

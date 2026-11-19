@@ -8,6 +8,7 @@
   <title>InvestorAce · Trading Desk</title>
   <link rel="icon" href="icon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="style.css">
+  <script src="market.js" defer></script>
   <script src="app.js" defer></script>
 </head>
 <body>
@@ -27,12 +28,12 @@
     <div class="workspace">
       <header class="topbar">
         <div class="breadcrumbs"><span>InvestorAce</span><span class="slash">/</span><strong id="crumb">Übersicht</strong></div>
-        <div class="top-actions">
+        <div class="top-actions"><input aria-label="Desk durchsuchen" id="desk-search" class="search" type="search" placeholder="Ticker, Firma, Index, Trade …">
           <button class="button subtle" id="build-top" type="button" aria-label="Build-Nachweis anzeigen"><span class="dot"></span><span id="top-status">Build wird geladen</span></button>
           <button class="button" id="export-top" type="button">Exportieren</button>
         </div>
       </header>
-      <main id="main" tabindex="-1"><div class="loading" role="status">InvestorAce-Daten werden geladen …</div></main>
+      <section id="desk-results" aria-label="Suchergebnisse" hidden></section><main id="main" tabindex="-1"><div class="loading" role="status">InvestorAce-Daten werden geladen …</div></main>
       <footer class="footer"><span>InvestorAce Trading Desk</span><span id="footer-data">Archivierter Datenstand</span></footer>
     </div>
   </div>

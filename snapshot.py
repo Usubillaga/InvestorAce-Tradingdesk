@@ -63,7 +63,7 @@ def score_rows(record):
                          regimeComponents=row.get('regime_components') or {},
                          opportunity=select(opp, 'score label score_lower score_upper expires_at valid_until quote_status status withdrawn version schema signal_basis profile'),
                          inputs=select(inp, 'financial_period financial_published_at financial_retrieved_at quote_observed_at shares shares_asof shares_basis cash_flow_basis normalization_status built'),
-                         price=row.get('price')))
+                         price=row.get('price'), symbol=inp.get('yf') or ticker))
     return rows
 
 
@@ -300,6 +300,15 @@ def generate(root):
     for run,b in builds.items():
         out['builds'][run] = dict(manifest=b['manifest'], captured=b['record']['_evidence']['captured_at'],
                                   url=f'{BASE}/tree/{rev}/history/_builds/{run}')
+    history = {}
+    for item in reversed(list(builds.values())):
+        pulse = ((item['record']['_evidence'].get('macro') or {}).get('pulse') or {})
+        for move in pulse.get('moves') or []:
+            history.setdefault(move['symbol'], {})[move['date']] = move['close']
+    if builds:
+        pulse = record['_evidence']['macro'].get('pulse') or {}
+        out['market'] = dict(moves=pulse.get('moves') or [], components=pulse.get('components') or {},
+                             history={symbol: sorted(rows.items())[-90:] for symbol, rows in history.items()})
     try:
         engine = importlib.import_module('codex_trading')
         out['paper'], comparison_issue = paper(root/'history'/'codex_trading.json', builds, engine, rev)

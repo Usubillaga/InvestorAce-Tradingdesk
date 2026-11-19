@@ -73,3 +73,5 @@ dialog{width:min(760px,calc(100% - 24px));max-height:88dvh;overflow:auto;border:
 .internal{white-space:nowrap}
 
 .raw{white-space:pre-wrap;overflow-wrap:anywhere;max-height:18rem;overflow:auto}
+
+.market-layout{display:grid;grid-template-columns:minmax(0,2fr) minmax(220px,1fr);gap:16px;margin:18px 0}.market-heading{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap}.market-price{font-size:2rem;font-variant-numeric:tabular-nums}.market-price small,figcaption{font-size:.85rem;color:var(--muted)}.price-plot{margin:14px 0}.price-plot svg{width:100%;height:130px;display:block}.breadthbar{display:flex;height:14px;border-radius:4px;overflow:hidden;background:#72808b}.breadthbar i{background:#54c7a3}.breadthbar b{background:#ce706f}#desk-results{max-height:50vh;overflow:auto;margin:12px;background:var(--panel)}.top-actions{flex-wrap:wrap}#desk-search{max-width:min(100%,230px)}@media(max-width:760px){.market-layout{grid-template-columns:1fr}.topbar{flex-wrap:wrap}.top-actions{max-width:100%}}

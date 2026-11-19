@@ -1,0 +1,47 @@
+name: Intraday market pages
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - '.github/workflows/market.yml'
+      - 'dist/**'
+      - 'session_feed.py'
+      - 'index.html'
+  schedule:
+    - cron: '*/5 7-21 * * 1-5'
+permissions: {}
+concurrency:
+  group: market-pages
+  cancel-in-progress: false
+jobs:
+  quotes:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Fetch public market prices using the Python standard library
+        run: python3 session_feed.py
+      - name: Package static web assets
+        run: |
+          mkdir -p _site
+          cp index.html _site/
+          cp -R dist _site/
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+  deploy:
+    needs: quotes
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.publish.outputs.page_url }}
+    steps:
+      - id: publish
+        uses: actions/deploy-pages@v4
