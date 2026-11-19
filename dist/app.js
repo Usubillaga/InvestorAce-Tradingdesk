@@ -43,7 +43,7 @@ const strategyNames = {timing:'Opportunity + Timing', opportunity:'Opportunity',
 const strategy = key => strategyNames[key] || present(key);
 const navItems = [
   ['overview','Übersicht'],['market','Markt & Intraday'],['active','Aktives Trading'],['paper','Paper-Trading'],
-  ['evidence','Modellvergleich'],['score','Scorecard & Regime'],['journal','Journal & Reviews'],
+  ['scanner','Scanner-Universum'],['evidence','Modellvergleich'],['score','Scorecard & Regime'],['journal','Journal & Reviews'],
 ];
 const filters = [['all','Alle'],['open','Offene Trades'],['closed','Abgeschlossene'],['review','Review erforderlich'],['error','Datenfehler'],['conflict','Build-Konflikte']];
 const stages = [['backtest','Backtest'],['frozen','Frozen-OOS'],['paper','Paper-Trading'],['live','Live-Beobachtung']];
@@ -370,7 +370,7 @@ function paint(focus=false) {
   $('#export-top').innerHTML = icon('download')+' Exportieren';
   $('#original').innerHTML = icon('link')+' InvestorAce Hauptreport';
   $('#footer-data').textContent = data.captured ? `Archivierter Datenstand · ${time(data.captured)}` : 'Archivierter Datenstand · offen';
-  main.innerHTML = ({overview,market:()=>header('Markt & Intraday','Indexkurse, Marktbreite und regelbasierte Paper-Ausführungen.')+marketPanel()+sessionBook(),active:live,paper:paperPage,evidence:evidencePage,score:scorePage,journal})[state.page]();
+  main.innerHTML = ({overview,market:()=>header('Markt & Intraday','Indexkurse, Marktbreite und regelbasierte Paper-Ausführungen.')+marketPanel()+sessionBook(),scanner:scannerPage,active:live,paper:paperPage,evidence:evidencePage,score:scorePage,journal})[state.page]();
   if (focus) main.focus({preventScroll:true});
 }
 function show(title, content) {
