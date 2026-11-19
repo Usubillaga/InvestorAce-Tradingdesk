@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0d141c">
+  <meta name="description" content="InvestorAce Trading Desk — aktives Handelsjournal, Paper-Trading und nachvollziehbare Modellprüfung.">
+  <title>InvestorAce · Trading Desk</title>
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="style.css">
+  <script src="app.js" defer></script>
+</head>
+<body>
+  <a class="skip" href="#main">Zum Inhalt</a>
+  <div class="shell">
+    <aside class="sidebar">
+      <a class="brand" href="#overview">
+        <img src="icon.svg" alt="" width="42" height="42">
+        <span><strong>InvestorAce<span class="brand-dot">.</span></strong><small>Trading Desk</small></span>
+      </a>
+      <nav id="nav" aria-label="Hauptnavigation"></nav>
+      <div class="sidebar-end">
+        <a id="original" class="original" href="https://usubillaga.github.io/InvestorAce/" target="_blank" rel="noopener">InvestorAce Hauptreport</a>
+        <div class="sidebar-meta"><span></span> Live-Journal in diesem Browser</div>
+      </div>
+    </aside>
+    <div class="workspace">
+      <header class="topbar">
+        <div class="breadcrumbs"><span>InvestorAce</span><span class="slash">/</span><strong id="crumb">Übersicht</strong></div>
+        <div class="top-actions">
+          <button class="button subtle" id="build-top" type="button" aria-label="Build-Nachweis anzeigen"><span class="dot"></span><span id="top-status">Build wird geladen</span></button>
+          <button class="button" id="export-top" type="button">Exportieren</button>
+        </div>
+      </header>
+      <main id="main" tabindex="-1"><div class="loading" role="status">InvestorAce-Daten werden geladen …</div></main>
+      <footer class="footer"><span>InvestorAce Trading Desk</span><span id="footer-data">Archivierter Datenstand</span></footer>
+    </div>
+  </div>
+  <dialog id="dialog" aria-labelledby="dialog-title">
+    <div class="dialog-top"><h2 id="dialog-title"></h2><form method="dialog"><button class="icon-button" type="submit" aria-label="Schließen">×</button></form></div>
+    <div id="dialog-body"></div>
+  </dialog>
+  <div id="toast" role="status" aria-live="polite"></div>
+</body>
+</html>
