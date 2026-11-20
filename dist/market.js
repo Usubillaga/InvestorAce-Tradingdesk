@@ -92,7 +92,10 @@ function breadthBlock() {
 }
 function marketPanel() {
   const moves=data.market?.moves || [];
-  const m=moves.find(m=>m.symbol===instrument), stock=data.scorecard.find(r=>r.symbol===instrument) || sessionData?.scanner?.rows.find(r=>r.symbol===instrument);
+  const m=moves.find(m=>m.symbol===instrument);
+  const stock=data.scorecard.find(r=>r.symbol===instrument)
+    || sessionData?.watch?.find(r=>r.symbol===instrument)
+    || sessionData?.scanner?.rows.find(r=>r.symbol===instrument);
   const q=sessionData?.quotes[instrument];
   const archive=data.market?.history?.[instrument] || [];
   const intraday=chartMode==='session' && q?.path?.length>1;
@@ -135,20 +138,37 @@ function instrumentName(row) {return row?.name || sessionData?.quotes[row?.symbo
 function tradingViewWatchlist(rows) {
   return [...new Set(rows.map(r=>r.tradingViewSymbol).filter(Boolean))];
 }
+function scannerAndWatchSymbols() {
+  return tradingViewWatchlist([...(sessionData?.scanner?.rows || []), ...(sessionData?.watch || [])]);
+}
 function downloadTradingViewWatchlist() {
-  const symbols=tradingViewWatchlist(sessionData?.scanner?.rows || []);
+  const symbols=scannerAndWatchSymbols();
   if (symbols.length) saveDownload(symbols.join(','),'investorace-tradingview-watchlist.txt','text/plain;charset=utf-8');
+}
+function deskWatchPanel(download) {
+  const watch=sessionData?.watch || [];
+  if (!watch.length) return '';
+  const scores=new Map(data.scorecard.map(row=>[row.symbol,row]));
+  return `<article class="panel">${panelHead('Beobachtungsliste','Titel mit Kursbeobachtung',download)}
+  ${cells(['Aktie','Unternehmen','Kurs','Kurszeit','Research'],watch.map(row=>{
+    const q=sessionData.quotes[row.symbol];
+    const ticker=scores.get(row.symbol)?.ticker;
+    const research=ticker ? button('Scorecard','score','small',`data-key="${esc(ticker)}"`) : 'Bewertung offen';
+    return [button(esc(row.ticker),'instrument','small',`data-key="${esc(row.symbol)}"`),
+      esc(instrumentName(row)),q?`${n(q.price)} ${esc(q.currency)}`:'Offen',quoteTime(q?.at),research];
+  }))}</article>`;
 }
 function scannerPage() {
   const scanner=sessionData?.scanner;
   const title=header('Scanner-Universum','Die rangfähigen Treffer des InvestorAce-Marktscanners fließen automatisch in die Kursbeobachtung ein.');
-  if(!scanner) return title+pairExperimentPanel()+empty('Scannerstand ausstehend','Der Kursdienst hat noch keinen passenden Scannerbericht geliefert.');
+  const watchlist=scannerAndWatchSymbols();
+  const download=watchlist.length ? button('TradingView-Watchlist (.txt)','tradingview-watchlist','small') : '';
+  const watch=deskWatchPanel(scanner ? '' : download);
+  if(!scanner) return title+pairExperimentPanel()+watch+empty('Scannerstand ausstehend','Der Kursdienst hat noch keinen passenden Scannerbericht geliefert.');
   const added=scanner.rows.filter(r=>r.added);
   const scorecardBySymbol=new Map(data.scorecard.map(row=>[row.symbol,row]));
-  const watchlist=tradingViewWatchlist(scanner.rows);
   const source=link('https://github.com/Usubillaga/InvestorAce/blob/'+encodeURIComponent(scanner.revision)+'/market-scan/latest.json','Scannerquelle');
-  const download=watchlist.length ? button('TradingView-Watchlist (.txt)','tradingview-watchlist','small') : '';
-  return title+pairExperimentPanel()+`<article class="panel">${panelHead(added.length+' zusätzliche Aktien',scanner.rows.length+' rangfähige Treffer · Scan vom '+day(scanner.asOf),download+' '+source)}
+  return title+pairExperimentPanel()+watch+`<article class="panel">${panelHead(added.length+' zusätzliche Aktien',scanner.rows.length+' rangfähige Treffer · Scan vom '+day(scanner.asOf),download+' '+source)}
   <div class="details"><p>${esc(scanner.coverage || '')}</p>${watchlist.length ? `<p>TradingView-Export · ${watchlist.length} Titel mit Börsenkürzel · Import im Watchlist-Menü von TradingView</p>` : ''}<p>Das Rating stammt aus dem Scanner. Für eine reale Order braucht der Desk eine Handelsregel, Positionsgröße und Brokeranbindung.</p></div>
   ${cells(['Aktie','Unternehmen','Scanner-Rating','Score / 10','Abdeckung','Letzter Kurs','Kurszeit','Short Interest','Prüfstatus'],scanner.rows.map(r=>{
     const q=sessionData.quotes[r.symbol];
@@ -169,6 +189,8 @@ function searchDesk(term) {
   for(const m of data.market?.moves || [])add(m.name,m.symbol+' · Markt','instrument',m.symbol);
   for(const t of allTrades())add(t.ticker,strategy(t.strategy)+' · '+t.status+' · '+(t.reason || t.signal || ''),'trade',t.id);
   for(const r of data.scorecard){add(r.ticker+' · '+instrumentName(r),r.sector+' · '+(r.opportunity.label || '')+' · Scorecard','score',r.ticker);add(r.symbol,instrumentName(r)+' · Kurschart','instrument',r.symbol);}
+  const covered=new Set(data.scorecard.map(r=>r.symbol));
+  for(const r of sessionData?.watch || [])if(!covered.has(r.symbol))add(r.ticker+' · '+r.name,'Beobachtung · Kurschart','instrument',r.symbol);
   for(const r of sessionData?.scanner?.rows || [])if(r.added)add(r.ticker+' · '+r.name,[r.symbol,r.sector,r.band,'Scanner'].join(' · '),'instrument',r.symbol);
   return cells(['Treffer','Kontext'],rows);
 }

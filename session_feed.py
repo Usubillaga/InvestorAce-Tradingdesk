@@ -12,6 +12,10 @@ from urllib.request import Request, urlopen
 
 ROOT = Path(__file__).resolve().parent
 TRADINGVIEW_EXCHANGES = {"Nasdaq": "NASDAQ", "NYSE": "NYSE"}
+WATCHLIST = (
+    dict(symbol='PDD', ticker='PDD', name='PDD Holdings (Pinduoduo / Temu)',
+         tradingViewSymbol='NASDAQ:PDD'),
+)
 
 def positive(v):
     return type(v) in (int, float) and math.isfinite(v) and v > 0
@@ -132,13 +136,14 @@ def main():
         scanner = None
     if scanner:
         symbols.update(row['symbol'] for row in scanner['rows'])
+    symbols.update(row['symbol'] for row in WATCHLIST)
     symbols = sorted(symbols)
     with ThreadPoolExecutor(max_workers=8) as pool:
         quotes = {s:q for s,q in zip(symbols,pool.map(fetch_quote,symbols)) if q}
     if not quotes:
         raise SystemExit('Quote feed unavailable')
     now = int(time.time())
-    result = dict(version=1, sampled=now, snapshot=snapshot['current'], quotes=quotes, scanner=scanner)
+    result = dict(version=1, sampled=now, snapshot=snapshot['current'], quotes=quotes, scanner=scanner, watch=WATCHLIST)
     target.parent.mkdir(parents=True, exist_ok=True)
     tmp = target.with_suffix('.tmp')
     tmp.write_text(json.dumps(result, allow_nan=False, separators=(',', ':')))
