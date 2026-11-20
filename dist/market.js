@@ -1,5 +1,49 @@
 'use strict';
 let sessionData = null;
+let experimentReport = null;
+const experimentPageUrl = 'https://usubillaga.github.io/InvestorAce/swing-experiments.html';
+const pairStatus = {DIVERGENCE:'Divergenz prüfen', NEUTRAL:'Keine Divergenz', UNSUPPORTED:'Kointegration nicht belegt'};
+
+async function refreshExperiments() {
+  for (const url of ['https://usubillaga.github.io/InvestorAce/swing-experiments.json','swing-experiments.json']) {
+    try {
+      const response=await fetch(url,{cache:'no-store',signal:AbortSignal.timeout(6000)});
+      if (!response.ok) continue;
+      const next=await response.json();
+      if (next.schema!=='swing-experiments-v1' || !next.gap?.control || !next.gap?.capped
+          || !Object.hasOwn(pairStatus,next.pair?.status) || !Array.isArray(next.pair.symbols)
+          || !/^\d{4}-\d{2}-\d{2}$/.test(next.as_of)) continue;
+      if (!experimentReport || next.as_of>=experimentReport.as_of) experimentReport=next;
+      break;
+    } catch {}
+  }
+  if (data && !dialog.open && ['paper','scanner'].includes(state.page)) paint();
+}
+
+function swingExperimentPanel() {
+  const p=experimentReport;
+  const action=link(experimentPageUrl,'Methode & Quelle');
+  if (!p) return `<article class="panel">${panelHead('Swing-Experimente','Auswertung wird geladen',action)}</article>`;
+  const limits=[['Fixes Gewicht 12 %',p.gap.control],['Gewicht nach Gap-Risiko',p.gap.capped]];
+  return `<article class="panel">${panelHead('Swing-Experimente',`Historische Simulation · bis ${day(p.as_of)} · ${n(p.session_count)} Sitzungen`,action)}
+    ${cells(['Positionsgröße','Käufe','Reduziert','Rendite EUR','Max. Drawdown','Schlechteste Eröffnung'],limits.map(([label,v])=>
+      [esc(label),n(v.buys),n(v.capped),pct(v.ending_pct),pct(v.max_drawdown_pct),pct(v.worst_observed_open_pct)]))}
+    <div class="details"><p>${n(p.gap.capped.sizing_coverage)} Käufe mit historischer Gap-Schätzung · ${n(p.gap.capped.observed_opens)} vollständig beobachtete Eröffnungen · ${n(p.gap.capped.incomplete_marks)} Schlussbewertung(en) mit Kurslücke.</p></div>
+  </article>`;
+}
+
+function pairExperimentPanel() {
+  const p=experimentReport?.pair;
+  if (!p) return '';
+  const pValue = value => finite(value) ? esc(value.toFixed(4)) : '—';
+  return `<article class="panel">${panelHead('Paarbeobachtung',`Forschung · Schlusskurse vom ${day(p.as_of)}`,link(experimentPageUrl,'Methode & Quelle'))}
+    ${cells(['Paar','Status','Z-Score','p-Wert Training','p-Wert letzte 252 Kurse','Geschätzte Halbwertszeit'],[[
+      esc(p.symbols.join(' / ')),esc(pairStatus[p.status]),n(p.z),pValue(p.train_p),pValue(p.recent_p),
+      finite(p.half_life) ? n(p.half_life)+' Sitzungen' : '—'
+    ]])}
+    <div class="details"><p>Zur Prüfung relativer Abweichungen. Swing-Käufe folgen weiter den Fundamental- und Timing-Regeln.</p></div>
+  </article>`;
+}
 let positionData = null;
 function shortPosition(ticker) {
   return positionData?.snapshot === data.current ? positionData.rows[ticker] : null;
@@ -98,13 +142,13 @@ function downloadTradingViewWatchlist() {
 function scannerPage() {
   const scanner=sessionData?.scanner;
   const title=header('Scanner-Universum','Die rangfähigen Treffer des InvestorAce-Marktscanners fließen automatisch in die Kursbeobachtung ein.');
-  if(!scanner) return title+empty('Scannerstand ausstehend','Der Kursdienst hat noch keinen passenden Scannerbericht geliefert.');
+  if(!scanner) return title+pairExperimentPanel()+empty('Scannerstand ausstehend','Der Kursdienst hat noch keinen passenden Scannerbericht geliefert.');
   const added=scanner.rows.filter(r=>r.added);
   const scorecardBySymbol=new Map(data.scorecard.map(row=>[row.symbol,row]));
   const watchlist=tradingViewWatchlist(scanner.rows);
   const source=link('https://github.com/Usubillaga/InvestorAce/blob/'+encodeURIComponent(scanner.revision)+'/market-scan/latest.json','Scannerquelle');
   const download=watchlist.length ? button('TradingView-Watchlist (.txt)','tradingview-watchlist','small') : '';
-  return title+`<article class="panel">${panelHead(added.length+' zusätzliche Aktien',scanner.rows.length+' rangfähige Treffer · Scan vom '+day(scanner.asOf),download+' '+source)}
+  return title+pairExperimentPanel()+`<article class="panel">${panelHead(added.length+' zusätzliche Aktien',scanner.rows.length+' rangfähige Treffer · Scan vom '+day(scanner.asOf),download+' '+source)}
   <div class="details"><p>${esc(scanner.coverage || '')}</p>${watchlist.length ? `<p>TradingView-Export · ${watchlist.length} Titel mit Börsenkürzel · Import im Watchlist-Menü von TradingView</p>` : ''}<p>Das Rating stammt aus dem Scanner. Für eine reale Order braucht der Desk eine Handelsregel, Positionsgröße und Brokeranbindung.</p></div>
   ${cells(['Aktie','Unternehmen','Scanner-Rating','Score / 10','Abdeckung','Letzter Kurs','Kurszeit','Short Interest','Prüfstatus'],scanner.rows.map(r=>{
     const q=sessionData.quotes[r.symbol];

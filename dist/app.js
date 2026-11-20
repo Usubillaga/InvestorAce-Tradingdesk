@@ -248,7 +248,7 @@ function paperPage() {
       `${num(h.entry,'n',paperStatus)} ${esc(h.currency)}`,num(h.weight,'pct',paperStatus),num(h.value,'eur',paperStatus),num(h.pnl,'eur',paperStatus),
       `${esc(day(h.dated))}<div class="fine">FX ${esc(day(h.fxDated))}</div>${button('Build','build','small',`data-key="${esc(h.markRun)}"`)}`])) : empty('Keine gefüllten Positionen am Journalstand','Ausstehende Orders sind in der Orderliste erfasst.')}</article>
     ${tradePanel('Paper-Orders','Ausstehende und abgeschlossene Orderereignisse',selectedOrders,'paper')}
-    ${paperHistory(p.decisions)}${paperRules()}${paired()}
+    ${paperHistory(p.decisions)}${paperRules()}${paired()}${swingExperimentPanel()}${pairExperimentPanel()}
     </div>` : notice('Das Modelljournal ist offen oder isoliert. Die Scorecard und der Hauptreport sind unabhängig verfügbar.') + issueTable(issues().filter(x=>x.section==='Paper-Trading')));
 }
 function paperRules() {
@@ -258,7 +258,7 @@ function paperRules() {
   <li><b>Opportunity + Timing</b> verlangt Fundamental- und Opportunity-Score ab 7 mit Buy oder Strong Buy, einen S&amp;P-500-Aufwärtstrend, einen Schluss über SMA 36/50/200 und 0 bis 3 ATR Abstand. Verkauf bei einem Score unter 6,5 oder bestätigtem Schluss unter SMA 200.</li>
   <li>Je Konto 10.000 € Startkapital, 12 % Zielbudget pro Kauf, höchstens acht Positionen und zwei je Sektor. Risiko am Stop und feste Kursziele bleiben offen, sofern kein Wert im jeweiligen Entscheidungsmodell vorliegt.</li>
   <li>Gebrochene Stücke zum nächsten verfügbaren Schluss nach dem Entscheidungstag in UTC, sieben Kalendertage Ordergültigkeit, 0,10 % Gebühr je Fill, lokale Total Returns und datierter EUR/USD-Kurs.</li></ul>
-  <p><a href="https://github.com/Usubillaga/InvestorAce/blob/main/docs/analysis/swing-confirmation-2026-11-20.md" target="_blank" rel="noopener">Swing-Backtest · 11 Sitzungen · Pilot</a></p>
+  <p><a href="https://github.com/Usubillaga/InvestorAce/blob/main/docs/analysis/swing-confirmation-2026-11-20.md" target="_blank" rel="noopener">Swing-Backtest · Pilot</a></p>
   <p>Die Nachrechnung verwendet den Code des Archiv-Commits und die Eingaben der verifizierten Entscheidungs-Builds. Die Regelversion des Paper-Ledgers und die archivierte Opportunity-Version stehen im Trade-Detail.</p></div></article>`;
 }
 function paired() {
@@ -710,7 +710,8 @@ async function loadDeskSnapshot() {
   throw new Error('snapshot');
 }
 loadDeskSnapshot().then(s=>{
-  data = s; state.regime = data.macro?.regime || 'REFLATION'; readLocal(); route(); paint(); refreshSession(); setInterval(refreshSession, 60000);
+  data = s; state.regime = data.macro?.regime || 'REFLATION'; readLocal(); route(); paint(); refreshSession(); refreshExperiments(); setInterval(refreshSession, 60000);
+  setInterval(refreshExperiments, 900000);
 }).catch(()=>{
   main.innerHTML = notice('Der archivierte Datensatz konnte nicht geladen werden. <a href="https://usubillaga.github.io/InvestorAce/">InvestorAce-Hauptreport öffnen</a>.');
 });
