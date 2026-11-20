@@ -279,3 +279,68 @@ async function updateLocalBook(sample) {
     });
   }catch{deskBook=null;}
 }
+
+const codexRoot = 'https://raw.githubusercontent.com/Usubillaga/InvestorAce/main/history/';
+const codexJournal = 'https://usubillaga.github.io/InvestorAce/codex-long-short.html';
+let codexPaper = null;
+let codexPaperLoaded = false;
+
+function isCodexPaperReport(report) {
+  return report?.schema === 'codex-long-short-v1'
+    && /^\d{8}T\d{12}-[0-9a-f]{32}$/.test(report.archive_build)
+    && Number.isFinite(Date.parse(report.as_of))
+    && report.paper?.fundamental_sides?.join(',') === 'LONG'
+    && report.paper?.positions && !Array.isArray(report.paper.positions) && typeof report.paper.positions === 'object'
+    && Object.values(report.paper.positions).every(pos => ['LONG', 'SHORT'].includes(pos?.side))
+    && Array.isArray(report.paper.pending) && Array.isArray(report.paper.orders)
+    && report.backtest?.forward_rules?.by_side?.LONG && report.backtest.forward_rules.by_side.SHORT;
+}
+
+async function refreshCodexPaper() {
+  const read = async url => {
+    const response = await fetch(url, { cache:'no-store', signal:AbortSignal.timeout(6000) });
+    if (!response.ok) throw new Error('Codex paper data unavailable');
+    return response.json();
+  };
+  try {
+    const next = await read(codexRoot + 'long_short_lab.json');
+    if (!isCodexPaperReport(next)) throw new Error('Invalid Codex paper report');
+    const manifest = await read(codexRoot + '_builds/' + next.archive_build + '/manifest.json');
+    if (manifest?.run_id !== next.archive_build) throw new Error('Unmatched Codex generated report');
+    if (!codexPaper || Date.parse(next.as_of) >= Date.parse(codexPaper.as_of)) codexPaper = next;
+  } catch {}
+  codexPaperLoaded = true;
+  if (data && !dialog.open && ['paper', 'long-short'].includes(state.page)) paint();
+}
+
+function codexPaperPanel() {
+  const report = codexPaper;
+  const action = link(codexJournal, 'InvestorAce-Journal');
+  if (!report) return `<article class="panel">${panelHead('Automatische Longs & Shorts',
+    codexPaperLoaded ? 'Verifizierter Paper-Kontostand aktuell nicht abrufbar' : 'Paper-Konto wird geladen', action)}</article>`;
+  const {paper, backtest} = report;
+  const positions = Object.entries(paper.positions);
+  const orders = [...paper.orders.slice(-8), ...paper.pending].reverse();
+  const count = side => positions.filter(([, pos]) => pos.side === side).length;
+  const usd = value => new Intl.NumberFormat('de-DE', {style:'currency', currency:'USD'}).format(value);
+  const test = backtest.forward_rules;
+  const build = 'https://github.com/Usubillaga/InvestorAce/tree/main/history/_builds/' + report.archive_build;
+  return `<article class="panel section-gap">${panelHead('Automatische Longs & Shorts', `Paper-Konto · Stand ${time(report.as_of)}`, action)}
+    <div class="summary-grid">
+      ${stat('Offene Longs',n(count('LONG')),'Simulation','soft','Fundamental + technisch','active')}
+      ${stat('Offene Shorts',n(count('SHORT')),'Simulation','soft','Rein technisch','active')}
+      ${stat('Ausstehende Orders',n(paper.pending.length),'Simulation','soft','Orderjournal','journal')}
+    </div>
+    ${positions.length ? cells(['Ticker','Richtung','Eröffnet','Einstieg','Letzte Bewertung','Positionswert'],positions.map(([ticker,pos])=>
+        [esc(ticker),esc(pos.side),esc(day(pos.opened_on)),finite(pos.entry_close)?esc(usd(pos.entry_close)):'Offen',
+         esc(day(pos.marked_on)),finite(pos.marked_notional)?esc(usd(pos.marked_notional)):'Offen']))
+      : empty('Keine aktiven Paper-Positionen',paper.sessions ? 'Für den verifizierten Stand ist das Konto ohne offene Positionen.'
+        : 'Das Konto wartet auf seine erste zulässige Handelssitzung.')}
+    ${orders.length ? cells(['Order','Richtung','Ticker','Ausführung','Status'],orders.map(o=>
+      [esc(o.action),esc(o.side),esc(o.ticker),esc(day(o.execution_session)),esc(o.status)])) : ''}
+    <div class="details"><p>Historischer Backtest · ${n(test.by_side.LONG.entries)} Long-Einstiege ·
+      ${n(test.by_side.SHORT.entries)} Short-Einstiege · ${pct(test.return_pct)} nach simulierten Kosten.</p>
+      <p>${link(build,'Verifizierter Daten-Build')}${link(codexRoot + 'long_short_lab.json','Aktueller Bericht (JSON)')}</p>
+    </div>
+  </article>`;
+}

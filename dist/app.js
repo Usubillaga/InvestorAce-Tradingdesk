@@ -43,6 +43,7 @@ const strategyNames = {timing:'Opportunity + Timing', opportunity:'Opportunity',
 const strategy = key => strategyNames[key] || present(key);
 const navItems = [
   ['overview','Übersicht'],['market','Markt & Intraday'],['active','Aktives Trading'],['paper','Paper-Trading'],
+  ['long-short','Long / Short · Paper'],
   ['scanner','Scanner-Universum'],['evidence','Modellvergleich'],['score','Scorecard & Regime'],['journal','Journal & Reviews'],
 ];
 const filters = [['all','Alle'],['open','Offene Trades'],['closed','Abgeschlossene'],['review','Review erforderlich'],['error','Datenfehler'],['conflict','Build-Konflikte']];
@@ -239,7 +240,7 @@ function paperPage() {
   const holdings = (p?.positions || []).filter(t=>state.account==='all' || t.strategy===state.account);
   const head = header('Paper-Trading','Kontostand und Orders werden aus dem archivierten Entscheidungsverlauf nachgerechnet.',link(data.pages.paper,'Originalbericht'),'Modellsimulation');
   const summary = selection.map(a=>`<article class="panel panel-pad"><h3>${esc(a.name)}</h3><div class="fine">${badge(paperStatus,'good')} · ${day(a.session)}</div><div class="details" style="padding:12px 0 0">${kv([['Kontowert',eur(a.equity)],['Cash',eur(a.cash)],['P&L',eur(a.pnl)],['Ist-Exposure',pct(a.actual)],['Ziel-Exposure',pct(a.target)],['Kauforders',eur(a.pendingCapital)],['Gebühren',eur(a.fees)],['Umsatz',eur(a.turnover)],['Kurslücken',a.gaps.join(', ') || 'Keine im Journal']])}${button('Entscheidungs-Build','build','small',`data-key="${esc(a.run)}"`)}</div></article>`).join('');
-  return head + (p ? `${tabs(names,state.account,'account')}<div class="stack">
+  return head + codexPaperPanel() + (p ? `${tabs(names,state.account,'account')}<div class="stack">
     <div class="card-grid">${summary}</div>
     <div class="grid-main" style="margin-bottom:0"><article class="panel">${panelHead('Ziel- und Ist-Exposure','Je Modellkonto in % des Eigenkapitals')}${exposure(selection)}</article>
     ${decisionsPanel('Signale & Entscheidungen',[[strategy('timing'),d.market==='CORRECTION'?'Neue Timing-Einstiege pausiert · S&P-500-Trend laut Journal':`Markttrend ${present(d.market)}`,null],['Nächster Lauf','Ausführungen, Kurslücken und EUR/USD im Folgebuild prüfen.',null]],`Journalentscheidung ${time(d.at)}`)}</div>
@@ -382,7 +383,7 @@ function paint(focus=false) {
   $('#export-top').innerHTML = icon('download')+' Exportieren';
   $('#original').innerHTML = icon('link')+' InvestorAce Hauptreport';
   $('#footer-data').textContent = data.captured ? `Archivierter Datenstand · ${time(data.captured)}` : 'Archivierter Datenstand · offen';
-  main.innerHTML = ({overview,market:()=>header('Markt & Intraday','Indexkurse, Marktbreite und regelbasierte Paper-Ausführungen.')+marketPanel()+sessionBook(),scanner:scannerPage,active:live,paper:paperPage,evidence:evidencePage,score:scorePage,journal})[state.page]();
+  main.innerHTML = ({overview,market:()=>header('Markt & Intraday','Indexkurse, Marktbreite und regelbasierte Paper-Ausführungen.')+marketPanel()+sessionBook(),scanner:scannerPage,active:live,paper:paperPage,'long-short':()=>header('Long / Short','Automatisches Paper-Konto von InvestorAce.')+codexPaperPanel(),evidence:evidencePage,score:scorePage,journal})[state.page]();
   if (focus) main.focus({preventScroll:true});
 }
 function show(title, content) {
@@ -710,8 +711,9 @@ async function loadDeskSnapshot() {
   throw new Error('snapshot');
 }
 loadDeskSnapshot().then(s=>{
-  data = s; state.regime = data.macro?.regime || 'REFLATION'; readLocal(); route(); paint(); refreshSession(); refreshExperiments(); setInterval(refreshSession, 60000);
+  data = s; state.regime = data.macro?.regime || 'REFLATION'; readLocal(); route(); paint(); refreshSession(); refreshExperiments(); refreshCodexPaper(); setInterval(refreshSession, 60000);
   setInterval(refreshExperiments, 900000);
+  setInterval(refreshCodexPaper, 900000);
 }).catch(()=>{
   main.innerHTML = notice('Der archivierte Datensatz konnte nicht geladen werden. <a href="https://usubillaga.github.io/InvestorAce/">InvestorAce-Hauptreport öffnen</a>.');
 });
