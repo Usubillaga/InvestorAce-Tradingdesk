@@ -225,9 +225,39 @@ function marketTrendPanel() {
   </article>`;
 }
 
+let opportunityReport;
+let opportunityChecked = 0;
+let opportunityFailed = false;
+async function loadScannerOpportunities() {
+  if (Date.now() - opportunityChecked < 900000) return;
+  opportunityChecked = Date.now();
+  try {
+    const res = await fetch('https://usubillaga.github.io/InvestorAce/scanner-opportunities.json',
+      {cache:'no-store', signal:AbortSignal.timeout(6000)});
+    if (!res.ok) throw new Error('Unavailable');
+    const doc = await res.json();
+    if (!Array.isArray(doc.rows) || !doc.rows.every(r => typeof r.ticker === 'string' && finite(r.score))) throw new Error('Invalid');
+    opportunityReport = doc;
+    opportunityFailed = false;
+  } catch { opportunityFailed = true; }
+  if (state.page === 'scanner' && !dialog.open) paint();
+}
+
+function scannerOpportunityPanel() {
+  loadScannerOpportunities();
+  const report = opportunityReport;
+  const source = link('https://usubillaga.github.io/InvestorAce/technical-scan.html#opportunities', 'InvestorAce');
+  const status = opportunityFailed ? ' · Aktualisierung fehlgeschlagen' : '';
+  return '<article class="panel">' + panelHead('Neue Long-Kandidaten', (report ? 'Schlusskurs vom ' + day(report.as_of)
+    : 'Daten ausstehend') + status, source) + (report ? cells(['Aktie','Scanner','Trend','Nächste Prüfung'],
+    report.rows.map(r => [esc(r.ticker), esc(r.band) + ' · ' + n(r.score),
+      r.new_trend ? 'Neuer Aufwärtstrend' : 'Aufwärtstrend', r.covered ? 'Qualität und SMA36-Einstieg prüfen'
+      : link('https://github.com/Usubillaga/InvestorAce/issues/new?title=' + encodeURIComponent('add-ticker: ' + r.ticker), 'Aufnahme prüfen')])) : '') + '</article>';
+}
+
 function scannerPage() {
   const scanner=sessionData?.scanner;
-  const title=header('Scanner-Universum','Die rangfähigen Treffer des InvestorAce-Marktscanners fließen automatisch in die Kursbeobachtung ein.');
+  const title=header('Scanner-Universum','Die rangfähigen Treffer des InvestorAce-Marktscanners fließen automatisch in die Kursbeobachtung ein.') + scannerOpportunityPanel();
   const watchlist=scannerAndWatchSymbols();
   const download=watchlist.length ? button('TradingView-Watchlist (.txt)','tradingview-watchlist','small') : '';
   const watch=deskWatchPanel(scanner ? '' : download)+marketTrendPanel();

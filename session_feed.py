@@ -43,12 +43,22 @@ def fetch_quote(symbol):
     return None
 
 
-def scanner_universe(report, known):
+def scanner_universe(report, known, trend=None):
     if report.get('schema') != 'market-scan-v1' or not isinstance(report.get('candidates'), list):
         raise ValueError('Unsupported scanner report')
+    trend = trend or {}
+    trends = trend.get('opportunity_trends', trend.get('leaders', []) + trend.get('new_uptrends', []))
+    trending = {r.get('ticker') for r in trends if isinstance(r, dict) and not r.get('event_jump')}
     rows = {}
     for item in report['candidates']:
-        if not isinstance(item, dict) or item.get('rank_eligible') is not True:
+        if not isinstance(item, dict):
+            continue
+        if 'rank_eligible' in item:
+            if item['rank_eligible'] is not True:
+                continue
+        elif not (trend.get('schema') == 'market-trend-v1' and trend.get('as_of')
+                  and item.get('status') == 'COMPLETE' and item.get('band') in ('Buy', 'Strong Buy')
+                  and item.get('price_date') == trend['as_of'] and item.get('yahoo') in trending):
             continue
         symbol = item.get('yahoo')
         if not isinstance(symbol, str) or not re.fullmatch(r'[A-Z0-9][A-Z0-9.-]{0,16}', symbol):
@@ -58,7 +68,7 @@ def scanner_universe(report, known):
         tv_symbol = f'{exchange}:{ticker}' if exchange and re.fullmatch(r'[A-Z0-9]+(?:\.[A-Z0-9]+)?', ticker) else None
         rows.setdefault(symbol, dict(symbol=symbol, ticker=ticker, tradingViewSymbol=tv_symbol,
                         name=item.get('name'), sector=item.get('sector'), score=item.get('score'),
-                        band=item.get('band'), review=item.get('review_status'),
+                        band=item.get('band'), review=item.get('review_status') or item.get('normalization_status'),
                         priceDate=item.get('price_date'), added=symbol not in known))
     return dict(asOf=report['as_of'], coverage=report.get('coverage'), rows=list(rows.values()))
 
@@ -69,7 +79,12 @@ def fetch_scanner(snapshot, known):
         raise ValueError('Unexpected archive revision')
     url = f'https://raw.githubusercontent.com/Usubillaga/InvestorAce/{revision}/market-scan/latest.json'
     with urlopen(Request(url, headers={'User-Agent': 'InvestorAce-TradingDesk'}), timeout=20) as response:
-        scanner = scanner_universe(json.load(response), known)
+        report = json.load(response)
+    trend = None
+    if any(isinstance(c, dict) and 'rank_eligible' not in c for c in report.get('candidates', [])):
+        with urlopen(url.replace('/latest.json', '/trend.json'), timeout=12) as response:
+            trend = json.load(response)
+    scanner = scanner_universe(report, known, trend)
     return {**scanner, 'revision': revision}
 
 
