@@ -158,12 +158,76 @@ function deskWatchPanel(download) {
       esc(instrumentName(row)),q?`${n(q.price)} ${esc(q.currency)}`:'Offen',quoteTime(q?.at),research];
   }))}</article>`;
 }
+const trendUrl = 'https://raw.githubusercontent.com/Usubillaga/InvestorAce/main/market-scan/trend.json';
+let marketTrend = null;
+let marketTrendLoaded = false;
+
+function isMarketTrend(report) {
+  const row = r => r && typeof r.ticker === 'string' && /^[A-Z0-9.\-]{1,12}$/.test(r.ticker);
+  return report?.schema === 'market-trend-v1' && Number.isFinite(Date.parse(report.as_of))
+    && Array.isArray(report.breadth) && report.breadth.length > 1
+    && report.breadth.every(b => Number.isFinite(b.pct200) && Number.isFinite(b.pct50))
+    && Array.isArray(report.new_uptrends) && report.new_uptrends.every(row)
+    && Array.isArray(report.leaders) && report.leaders.every(row);
+}
+
+async function refreshMarketTrend() {
+  try {
+    const response = await fetch(trendUrl, { cache:'no-store', signal:AbortSignal.timeout(6000) });
+    if (!response.ok) throw new Error('Trend data unavailable');
+    const next = await response.json();
+    if (!isMarketTrend(next)) throw new Error('Invalid trend report');
+    if (!marketTrend || Date.parse(next.as_of) >= Date.parse(marketTrend.as_of)) marketTrend = next;
+  } catch {}
+  marketTrendLoaded = true;
+  if (data && !dialog.open && state.page === 'scanner') paint();
+}
+
+function trendSparkline(values) {
+  const w = 420, h = 60, step = w / (values.length - 1);
+  const y = v => (h - v / 100 * h).toFixed(1);
+  const points = values.map((v, i) => `${(i * step).toFixed(1)},${y(v)}`).join(' ');
+  return `<svg viewBox="0 0 ${w} ${h}" width="100%" height="${h}" role="img" aria-label="Anteil über dem 200-Tage-Schnitt">`
+    + `<line x1="0" x2="${w}" y1="${y(50)}" y2="${y(50)}" stroke="currentColor" stroke-opacity=".3" stroke-dasharray="3 3"/>`
+    + `<polyline fill="none" stroke="currentColor" stroke-width="2" points="${points}"/></svg>`;
+}
+
+function marketTrendPanel() {
+  const t = marketTrend;
+  const source = link('https://usubillaga.github.io/InvestorAce/technical-scan.html', 'Trendscan in InvestorAce');
+  if (!t) return `<article class="panel section-gap">${panelHead('Gesamtmarkt · Trend und Marktbreite',
+    marketTrendLoaded ? 'Trenddaten aktuell nicht abrufbar' : 'Trenddaten werden geladen', source)}</article>`;
+  const b = t.breadth, first = b[0], last = b[b.length - 1];
+  const move = last.pct200 - first.pct200;
+  const direction = move >= 5 ? 'verbessert sich' : move <= -5 ? 'verschlechtert sich' : 'seitwärts';
+  const signed = v => finite(v) ? `${v > 0 ? '+' : ''}${n(v)}` : 'Offen';
+  const universe = new Set(data.scorecard.map(r => r.symbol));
+  const rows = list => list.slice(0, 15).map(r => [
+    esc(r.ticker) + (universe.has(r.ticker) ? ' ✓' : ''), esc((r.name || '').slice(0, 32)),
+    pct(r.vs50), pct(r.vs200), signed(r.rs3) + ' Pkt.', signed(r.rs6) + ' Pkt.',
+    pct(finite(r.from_high) ? (Math.round(r.from_high * 10) / 10 || 0) : r.from_high)]);
+  const head = ['Aktie', 'Unternehmen', 'vs 50 Tage', 'vs 200 Tage', 'vs S&P 3 Mon.', 'vs S&P 6 Mon.', 'Abstand Hoch'];
+  return `<article class="panel section-gap">${panelHead('Gesamtmarkt · Trend und Marktbreite',
+      `${n(t.population)} liquide NYSE/Nasdaq-Aktien · Stand ${day(t.as_of)}`, source)}
+    <div class="summary-grid">
+      ${stat('Über 200-Tage-Schnitt', pct(last.pct200), 'Marktbreite', 'soft', `${direction} seit ${day(first.date)}`, 'market')}
+      ${stat('Über 50-Tage-Schnitt', pct(last.pct50), 'Marktbreite', 'soft', 'kurzfristig', 'market')}
+      ${stat('Im Aufwärtstrend', n(t.uptrend_count), 'Aktien', 'soft', `${n(t.new_uptrend_count)} neu in 20 Sitzungen`, 'scanner')}
+      ${stat('52-Wochen-Hochs / -Tiefs', `${n(last.highs)} / ${n(last.lows)}`, 'heute', 'soft', 'neue Hochs gegen neue Tiefs', 'market')}
+    </div>
+    ${trendSparkline(b.map(r => r.pct200))}
+    <div class="details"><p>Aufwärtstrend: Schluss über dem 50-Tage-Schnitt, 50 über 200, 200-Tage-Schnitt steigend. Aktien mit einem Tagessprung über 35 % in sechs Monaten (Studiendaten, Übernahmen) fehlen in den Listen. ✓ = im InvestorAce-Universum. Ideenliste, kein Kaufsignal: Gehandelt wird nur mit Modell-Label und im Marktaufwärtstrend.</p></div>
+    <h3>Drehen nach oben · neue Aufwärtstrends</h3>${cells(head, rows(t.new_uptrends))}
+    <h3>Trendführer · stärkste Aufwärtstrends</h3>${cells(head, rows(t.leaders))}
+  </article>`;
+}
+
 function scannerPage() {
   const scanner=sessionData?.scanner;
   const title=header('Scanner-Universum','Die rangfähigen Treffer des InvestorAce-Marktscanners fließen automatisch in die Kursbeobachtung ein.');
   const watchlist=scannerAndWatchSymbols();
   const download=watchlist.length ? button('TradingView-Watchlist (.txt)','tradingview-watchlist','small') : '';
-  const watch=deskWatchPanel(scanner ? '' : download);
+  const watch=deskWatchPanel(scanner ? '' : download)+marketTrendPanel();
   if(!scanner) return title+pairExperimentPanel()+watch+empty('Scannerstand ausstehend','Der Kursdienst hat noch keinen passenden Scannerbericht geliefert.');
   const added=scanner.rows.filter(r=>r.added);
   const scorecardBySymbol=new Map(data.scorecard.map(row=>[row.symbol,row]));
