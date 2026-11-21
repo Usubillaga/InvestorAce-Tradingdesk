@@ -161,12 +161,13 @@ function deskWatchPanel(download) {
 const trendUrl = 'https://raw.githubusercontent.com/Usubillaga/InvestorAce/main/market-scan/trend.json';
 let marketTrend = null;
 let marketTrendLoaded = false;
+let marketTrendRefreshFailed = false;
 
 function isMarketTrend(report) {
-  const row = r => r && typeof r.ticker === 'string' && /^[A-Z0-9.\-]{1,12}$/.test(r.ticker);
+  const row = r => r && typeof r.name === 'string' && typeof r.ticker === 'string' && /^[A-Z0-9.\-]{1,12}$/.test(r.ticker);
   return report?.schema === 'market-trend-v1' && Number.isFinite(Date.parse(report.as_of))
     && Array.isArray(report.breadth) && report.breadth.length > 1
-    && report.breadth.every(b => Number.isFinite(b.pct200) && Number.isFinite(b.pct50))
+    && report.breadth.every(b => b && [b.pct200, b.pct50].every(v => Number.isFinite(v) && v >= 0 && v <= 100))
     && Array.isArray(report.new_uptrends) && report.new_uptrends.every(row)
     && Array.isArray(report.leaders) && report.leaders.every(row);
 }
@@ -177,8 +178,10 @@ async function refreshMarketTrend() {
     if (!response.ok) throw new Error('Trend data unavailable');
     const next = await response.json();
     if (!isMarketTrend(next)) throw new Error('Invalid trend report');
-    if (!marketTrend || Date.parse(next.as_of) >= Date.parse(marketTrend.as_of)) marketTrend = next;
-  } catch {}
+    if (marketTrend && Date.parse(next.as_of) < Date.parse(marketTrend.as_of)) throw new Error('Older trend report');
+    marketTrend = next;
+    marketTrendRefreshFailed = false;
+  } catch { marketTrendRefreshFailed = true; }
   marketTrendLoaded = true;
   if (data && !dialog.open && state.page === 'scanner') paint();
 }
@@ -208,7 +211,7 @@ function marketTrendPanel() {
     pct(finite(r.from_high) ? (Math.round(r.from_high * 10) / 10 || 0) : r.from_high)]);
   const head = ['Aktie', 'Unternehmen', 'vs 50 Tage', 'vs 200 Tage', 'vs S&P 3 Mon.', 'vs S&P 6 Mon.', 'Abstand Hoch'];
   return `<article class="panel section-gap">${panelHead('Gesamtmarkt · Trend und Marktbreite',
-      `${n(t.population)} liquide NYSE/Nasdaq-Aktien · Stand ${day(t.as_of)}`, source)}
+      `${n(t.population)} liquide NYSE/Nasdaq-Aktien · Stand ${day(t.as_of)}${marketTrendRefreshFailed ? " · Aktualisierung fehlgeschlagen" : ""}`, source)}
     <div class="summary-grid">
       ${stat('Über 200-Tage-Schnitt', pct(last.pct200), 'Marktbreite', 'soft', `${direction} seit ${day(first.date)}`, 'market')}
       ${stat('Über 50-Tage-Schnitt', pct(last.pct50), 'Marktbreite', 'soft', 'kurzfristig', 'market')}
@@ -379,7 +382,7 @@ async function refreshCodexPaper() {
 
 function codexPaperPanel() {
   const report = codexPaper;
-  const action = link(codexJournal, 'InvestorAce-Journal');
+  const action = link('https://usubillaga.github.io/InvestorAce/trading-compare.html', 'Claude vs. Codex') + link(codexJournal, 'InvestorAce-Journal');
   if (!report) return `<article class="panel">${panelHead('Automatische Longs & Shorts',
     codexPaperLoaded ? 'Verifizierter Paper-Kontostand aktuell nicht abrufbar' : 'Paper-Konto wird geladen', action)}</article>`;
   const {paper, backtest} = report;

@@ -33,3 +33,10 @@ assert.equal(Object.keys(book.fills).length,1);assert.equal(book.accounts.timing
 o.side='Sell';o.inputs.signalExpiry=null;stepPaper(book,s,sample,2003);q.at=2004;q.price=12;stepPaper(book,s,sample,2004);
 assert.equal(Object.keys(book.fills).length,2);assert.ok(Math.abs(book.accounts.timing.cash-10019.78)<1e-8);
 console.log('Forward fills, freshness, FX, hours, snapshot binding, idempotence, fees and exit passed.');
+const isMarketTrend = vm.runInContext('isMarketTrend', ctx);
+const breadth = [{pct200:50, pct50:60}, {pct200:52, pct50:62}];
+const trend = {schema:'market-trend-v1', as_of:'2026-11-20', breadth, new_uptrends:[], leaders:[]};
+assert.ok(isMarketTrend(trend));
+assert.ok(!isMarketTrend({...trend, breadth:[null, breadth[1]]}));
+assert.ok(!isMarketTrend({...trend, breadth:[{pct50:105, pct200:10}, breadth[1]]}));
+assert.ok(!isMarketTrend({...trend, leaders:[{ticker:'X', name:42}]}));

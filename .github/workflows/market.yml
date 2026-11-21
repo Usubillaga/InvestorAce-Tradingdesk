@@ -7,6 +7,8 @@ on:
       - '.github/workflows/market.yml'
       - 'dist/**'
       - 'session_feed.py'
+      - 'snapshot.py'
+      - 'test_intraday.cjs'
       - 'index.html'
   schedule:
     - cron: '*/5 7-21 * * 1-5'
@@ -24,6 +26,12 @@ jobs:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
+      - name: Check dashboard and paper execution before publishing
+        run: |
+          node --check dist/app.js
+          node --check dist/market.js
+          node test_intraday.cjs
+          python3 -m py_compile snapshot.py session_feed.py
       - name: Identify published InvestorAce data
         id: archive
         run: |
