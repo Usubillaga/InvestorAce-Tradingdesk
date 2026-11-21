@@ -380,6 +380,41 @@ async function refreshCodexPaper() {
   if (data && !dialog.open && ['paper', 'long-short'].includes(state.page)) paint();
 }
 
+const competitionUrl = 'https://usubillaga.github.io/InvestorAce/competition-trades.json';
+let competitionTrades = null;
+let competitionError = false;
+
+async function refreshCompetitionTrades() {
+  try {
+    const response = await fetch(competitionUrl, {cache:'no-store', signal:AbortSignal.timeout(8000)});
+    if (!response.ok) throw new Error('Trade journal unavailable');
+    const next = await response.json();
+    if (!/^\d{8}T\d{12}-[a-f0-9]{32}$/.test(next.build) || !Number.isFinite(Date.parse(next.as_of))
+        || !Array.isArray(next.columns) || next.columns.length !== 9 || !next.columns.every(c => typeof c === 'string')
+        || !Array.isArray(next.accounts) || !next.accounts.every(a => typeof a.name === 'string'
+          && Array.isArray(a.trades) && a.trades.every(row => Array.isArray(row) && row.length === next.columns.length))) {
+      throw new Error('Invalid trade journal');
+    }
+    if (!competitionTrades || next.build >= competitionTrades.build) competitionTrades = next;
+    competitionError = false;
+  } catch { competitionError = true; }
+  if (data && !dialog.open && ['paper','long-short'].includes(state.page)) paint();
+}
+
+function competitionPanel() {
+  const title = 'Claude vs. Codex · Paper-Trades';
+  const action = link('https://usubillaga.github.io/InvestorAce/trading-compare.html#trades', 'Vollständiges Journal');
+  if (!competitionTrades) return '<article class="panel">' + panelHead(title,
+    competitionError ? 'Journal aktuell nicht abrufbar' : 'Journal wird geladen', action) + '</article>';
+  const {as_of, accounts, columns} = competitionTrades;
+  const subtitle = 'Stand ' + day(as_of) + ' · Ausführungen zum Schlusskurs · Beträge vor Gebühren'
+    + (competitionError ? ' · Aktualisierung fehlgeschlagen' : '');
+  return '<article class="panel section-gap">' + panelHead(title, subtitle, action)
+    + accounts.map(a => '<h3>' + esc(a.name) + '</h3>' + (a.trades.length
+      ? cells(columns.map(esc), a.trades.map(row => row.map(v => esc(v ?? '—'))))
+      : '<p>Keine aufgezeichneten Orders.</p>')).join('') + '</article>';
+}
+
 function codexPaperPanel() {
   const report = codexPaper;
   const action = link('https://usubillaga.github.io/InvestorAce/trading-compare.html', 'Claude vs. Codex') + link(codexJournal, 'InvestorAce-Journal');
