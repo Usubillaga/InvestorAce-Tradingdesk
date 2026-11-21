@@ -2,6 +2,7 @@ name: Intraday market pages
 on:
   workflow_dispatch:
   push:
+    branches: [main]
     paths:
       - '.github/workflows/market.yml'
       - 'dist/**'
