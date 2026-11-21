@@ -11,7 +11,7 @@ on:
       - 'test_intraday.cjs'
       - 'index.html'
   schedule:
-    - cron: '*/5 7-21 * * 1-5'
+    - cron: '7,37 7-21 * * 1-5'
 permissions: {}
 concurrency:
   group: market-pages
@@ -27,6 +27,7 @@ jobs:
         with:
           persist-credentials: false
       - name: Check dashboard and paper execution before publishing
+        if: github.event_name != 'schedule'
         run: |
           node --check dist/app.js
           node --check dist/market.js
@@ -87,7 +88,7 @@ jobs:
       - id: publish
         uses: actions/deploy-pages@v4
       - name: Delete the Pages artifact once deployed
-        # This workflow deploys up to every five minutes on weekdays; each site
+        # This workflow deploys up to twice per hour on weekdays; each site
         # artifact (about 1 MB) would otherwise count against the account's
         # Actions storage until it expires.
         if: success()
