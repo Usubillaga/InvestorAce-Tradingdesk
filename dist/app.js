@@ -711,9 +711,10 @@ async function loadDeskSnapshot() {
   throw new Error('snapshot');
 }
 loadDeskSnapshot().then(s=>{
-  data = s; state.regime = data.macro?.regime || 'REFLATION'; readLocal(); route(); paint(); refreshSession(); refreshExperiments(); refreshCodexPaper(); setInterval(refreshSession, 60000);
+  data = s; state.regime = data.macro?.regime || 'REFLATION'; readLocal(); route(); paint(); refreshSession(); refreshExperiments(); refreshCodexPaper(); refreshMarketTrend(); setInterval(refreshSession, 60000);
   setInterval(refreshExperiments, 900000);
   setInterval(refreshCodexPaper, 900000);
+  setInterval(refreshMarketTrend, 900000);
 }).catch(()=>{
   main.innerHTML = notice('Der archivierte Datensatz konnte nicht geladen werden. <a href="https://usubillaga.github.io/InvestorAce/">InvestorAce-Hauptreport öffnen</a>.');
 });
