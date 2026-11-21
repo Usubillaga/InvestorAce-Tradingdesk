@@ -2,6 +2,7 @@ name: Intraday market pages
 on:
   workflow_dispatch:
   push:
+    branches: [main]
     paths:
       - '.github/workflows/market.yml'
       - 'dist/**'
@@ -63,15 +64,31 @@ jobs:
       - uses: actions/upload-pages-artifact@v3
         with:
           path: _site
+          retention-days: 1
   deploy:
     needs: quotes
     runs-on: ubuntu-latest
     permissions:
       pages: write
       id-token: write
+      actions: write
     environment:
       name: github-pages
       url: ${{ steps.publish.outputs.page_url }}
     steps:
       - id: publish
         uses: actions/deploy-pages@v4
+      - name: Delete the Pages artifact once deployed
+        # This workflow deploys up to every five minutes on weekdays; each site
+        # artifact (about 1 MB) would otherwise count against the account's
+        # Actions storage until it expires.
+        if: success()
+        continue-on-error: true
+        uses: actions/github-script@v8
+        with:
+          script: |
+            const {owner, repo} = context.repo;
+            const {data} = await github.rest.actions.listWorkflowRunArtifacts({owner, repo, run_id: context.runId});
+            for (const artifact of data.artifacts.filter(a => a.name === 'github-pages')) {
+              await github.rest.actions.deleteArtifact({owner, repo, artifact_id: artifact.id});
+            }
