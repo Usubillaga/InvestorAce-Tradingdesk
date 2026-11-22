@@ -6,6 +6,8 @@
 <p id="summary" role="status">Paper-Journal wird geladen …</p>
 <h2>Signale für die nächste Sitzung</h2><div id="signals"></div>
 <h2>Abgerechnete Paper-Trades</h2><div id="trades"></div>
+<h2>Gegenspieler: Claude · Kaufen und Halten</h2><p id="hold-summary" role="status">Konto wird geladen …</p><div id="hold"></div>
+<p>Dieselben fünf ETFs, 10.000 USD zu gleichen Teilen, ganze Stücke zum Eröffnungskurs am 23.11.2026, 0,10 % Kosten, danach unverändert gehalten; Dividenden werden gutgeschrieben. Grund: Im InvestorAce-Backtest (3 Perioden × 20 Starttermine) schlug keine Timing-Regel auf diesen ETFs das einfache Halten.</p>
 <details><summary>Regeln, Kosten und Daten</summary><p>Modell index-day-v1. Der Schlusskurs über dem 20-Tage-Mittel und über dem Schlusskurs vor fünf Sitzungen ergibt Long. Liegt er unter beiden, ergibt sich Short. Sonst bleibt der ETF flat. Kursquelle: Yahoo Finance, reguläre US-Sitzung, USD. Der DAX-ETF enthält Wechselkurseinflüsse.</p>
 <p>Startkapital 10.000 USD. Maximal 15 % je ETF und 0,5 % geplantes Risiko je Trade. Ganze Stücke zum nächsten regulären Eröffnungskurs. Stoppabstand: zweimal die mittlere True Range über 14 Sitzungen. Ausstieg beim Stopp oder zum selben Tagesschluss. Abrechnung nach Handelsschluss, mit 0,10 % modellierten Kosten je Seite. Stoppausführungen zum Schwellenkurs und verfügbare Leihe für Shorts sind Modellannahmen. Kein Nachweis einer profitablen Strategie.</p></details>
 <p><a href="https://github.com/Usubillaga/InvestorAce-Tradingdesk/actions/workflows/index-paper.yml">Automatische Läufe</a></p></main>
@@ -31,5 +33,15 @@ async function load(){
  table('signals',['US-Sitzung','Index','ETF','Richtung','Referenz USD','Max. Einsatz USD','Stoppabstand USD'],j.signals.map(s=>[s.session,s.index,s.symbol,s.side,number(s.reference),number(s.side==='FLAT'?0:s.budget),number(s.side==='FLAT'?null:s.stop_distance)]),'Keine vorgemerkten Signale.');
  table('trades',['US-Sitzung','ETF','Seite','Stück','Einsatz USD','Einstieg','Stopp','Ausstieg','Grund','Kosten USD','Netto USD'],j.trades.slice().reverse().map(t=>[t.session,t.symbol,t.side,t.shares,number(t.notional),number(t.entry),number(t.stop),number(t.exit),t.status,number(t.costs),number(t.net)]),'Noch keine abgerechneten Paper-Trades.');
 }
+async function loadHold(){
+ let h;
+ for(const url of ['https://raw.githubusercontent.com/Usubillaga/InvestorAce-Tradingdesk/main/dist/index-hold.json','index-hold.json']){
+  try{const r=await fetch(url,{cache:'no-store',signal:AbortSignal.timeout(6000)});if(r.ok){h=await r.json();break;}}catch{}
+ }
+ if(!h||!h.bought){document.querySelector('#hold-summary').textContent='Kauf zum Eröffnungskurs am 23.11.2026; erste Bewertung nach Handelsschluss.';return;}
+ document.querySelector('#hold-summary').textContent='Stand '+h.as_of+' · Konto '+number(h.equity)+' USD · Ergebnis '+number(h.equity-h.capital)+' USD · Bargeld '+number(h.cash)+' USD';
+ table('hold',['ETF','Stück','Einstieg','Schluss','Wert USD'],Object.entries(h.holdings).map(([s,x])=>[s,x.shares,number(x.entry),number(x.close),number(x.value)]),'Noch keine Positionen.');
+}
 load();
+loadHold();
 </script></html>
