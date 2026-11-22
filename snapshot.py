@@ -55,13 +55,17 @@ def score_rows(record):
         row = record.get(ticker, {})
         assessment = row.get('assessment') or {}
         opp = row.get('opportunity') or {}
+        financial = inp.get('dynamic_analysis') or {}
+        values = financial.get('inputs') or {}
         rows.append(dict(ticker=ticker, name=inp.get('name'), sector=inp.get('sector'), currency=inp.get('cur'),
                          score=assessment.get('model_score'), band=assessment.get('model_band'),
                          scoreRange=[assessment.get('score_lower'), assessment.get('score_upper')],
                          review=assessment.get('review_status'), issues=assessment.get('issues', []),
                          components=assessment.get('components', []), regime=row.get('regime') or {},
                          regimeComponents=row.get('regime_components') or {},
-                         valuation=select(row, 'ngv cover'),
+                         valuation=dict(ngv=row.get('ngv'), cover=row.get('cover'), currency=financial.get('financial_currency'),
+                                        cashFlow=values.get('fcf'), valuationCashFlow=values.get('valuation_fcf'),
+                                        impliedGrowth=(financial.get('valuation') or {}).get('reverse_dcf_growth_pct')),
                          cashOffer=opp.get('cash_offer'),
                          opportunity=select(opp, 'score label score_lower score_upper expires_at valid_until quote_status status withdrawn version schema signal_basis profile'),
                          inputs=select(inp, 'financial_period financial_published_at financial_retrieved_at quote_observed_at shares shares_asof shares_basis cash_flow_basis normalization_status built'),
