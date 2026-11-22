@@ -458,6 +458,9 @@ function shortInterestDetails(position) {
     ['Quelle',position.source==='YAHOO_EXCHANGE_REPORTED'?'Yahoo Finance · gemeldeter Börsenwert':position.source]
   ])+'<p class="fine">Die Positionierung fließt nicht in den Score oder das Einstiegssignal ein.</p>';
 }
+function cashMillions(value, currency) {
+  return finite(value) && currency ? n(value/1e6)+' Mio. '+currency : 'Offen';
+}
 function showScore(ticker) {
   const r = data.scorecard.find(x=>x.ticker===ticker);
   if (!r) return;
@@ -468,8 +471,11 @@ function showScore(ticker) {
     ['Kursstand',time(r.inputs.quote_observed_at)],['Normalisierung',r.inputs.normalization_status],['Cashflow-Basis',r.inputs.cash_flow_basis]])}
   ${r.cashOffer ? '<h3>Barangebot</h3>'+kv([['Angebot je Aktie',n(r.cashOffer.price)+' '+r.currency],
     ['Bruttospread zum archivierten Kurs',pct(r.cashOffer.spread_pct)],['Referenzkurs vor Bekanntgabe',n(r.cashOffer.reference_close)+' '+r.currency],
-    ['Rückkehr zum Referenzkurs (Szenario)',pct(r.cashOffer.reference_return_pct)],['Konditionen geprüft',day(r.cashOffer.reviewed)]]) :
-    kv([['No-Growth Value je Aktie',n(r.valuation?.ngv)],['Kursdeckung',pct(finite(r.valuation?.cover)?100*r.valuation.cover:null)]])}
+    ['Rückkehr zum Referenzkurs (Szenario)',pct(r.cashOffer.reference_return_pct)],['Konditionen geprüft',day(r.cashOffer.reviewed)]]) : ''}
+  ${kv([['No-Growth Value je Aktie',n(r.valuation?.ngv)],['Kursdeckung',pct(finite(r.valuation?.cover)?100*r.valuation.cover:null)],
+    ['Berichtsperiode',r.inputs.financial_period],['FCF',cashMillions(r.valuation?.cashFlow,r.valuation?.currency)],
+    ['Bewertungs-Cashflow',cashMillions(r.valuation?.valuationCashFlow,r.valuation?.currency)],
+    ['Eingepreistes FCF-Wachstum (5 Jahre)',pct(r.valuation?.impliedGrowth)]])}
   ${shortInterestDetails(shortPosition(r.ticker))}
   <h3>Fundamentale Komponenten</h3>${cells(['Komponente','Wert','Gewicht','Beitrag'],r.components.map(c=>[esc(c.label),num(c.value),num(finite(c.nominal_weight)?c.nominal_weight*100:null,'pct'),num(c.contribution)]))}
   <h3>Regime-Fit · archiviertes Modell</h3>${cells(['Regime','Fit','Sektor','Bilanz','Duration','Ausschüttung'],Object.entries(r.regime).map(([k,v])=>[esc(k),num(v),...['sector','balance','duration','payout'].map(c=>num(r.regimeComponents[k]?.[c]))]))}
