@@ -1,0 +1,39 @@
+name: Index buy-and-hold paper account (Claude)
+# Claude's entry in the index competition: the same five ETFs, bought once and held (index_hold.py).
+# Shares the ledger concurrency group with index-paper.yml, so the two journals never push at the same time.
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['index_hold.py', 'test_index_hold.py', '.github/workflows/index-hold.yml']
+  schedule:
+    - cron: '35 22 * * 1-5'
+permissions:
+  contents: write
+concurrency:
+  group: index-paper-ledger
+  cancel-in-progress: false
+jobs:
+  journal:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install 'exchange-calendars==4.11.3' 'pandas==2.3.3'
+      - run: python -m unittest test_index_hold test_index_paper && python index_hold.py
+      - name: Save the account
+        run: |
+          [ -f dist/index-hold.json ] || exit 0
+          git add dist/index-hold.json
+          if git diff --cached --quiet; then exit 0; fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'Record index buy-and-hold session'
+          git pull --rebase origin main
+          git push origin HEAD:main
