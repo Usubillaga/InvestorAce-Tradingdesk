@@ -1,0 +1,36 @@
+name: Index long and short paper journal
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['index_paper.py', 'test_index_paper.py', '.github/workflows/index-paper.yml']
+  schedule:
+    - cron: '25 22 * * 1-5'
+permissions:
+  contents: write
+concurrency:
+  group: index-paper-ledger
+  cancel-in-progress: false
+jobs:
+  journal:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install 'exchange-calendars==4.11.3' 'pandas==2.3.3'
+      - run: python -m unittest test_index_paper && python index_paper.py
+      - name: Save forward journal
+        run: |
+          git add dist/index-paper.json
+          if git diff --cached --quiet; then exit 0; fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'Record index paper session'
+          git pull --rebase origin main
+          git push origin HEAD:main

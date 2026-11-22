@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="de"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Index Long / Short · InvestorAce</title><link rel="stylesheet" href="style.css">
+<main class="panel panel-pad" style="max-width:1150px;margin:2vw auto;overflow:auto">
+<a href="index.html">← Trading Desk</a><h1>Index Long / Short</h1>
+<p id="summary" role="status">Paper-Journal wird geladen …</p>
+<h2>Signale für die nächste Sitzung</h2><div id="signals"></div>
+<h2>Abgerechnete Paper-Trades</h2><div id="trades"></div>
+<details><summary>Regeln, Kosten und Daten</summary><p>Modell index-day-v1. Der Schlusskurs über dem 20-Tage-Mittel und über dem Schlusskurs vor fünf Sitzungen ergibt Long. Liegt er unter beiden, ergibt sich Short. Sonst bleibt der ETF flat. Kursquelle: Yahoo Finance, reguläre US-Sitzung, USD. Der DAX-ETF enthält Wechselkurseinflüsse.</p>
+<p>Startkapital 10.000 USD. Maximal 15 % je ETF und 0,5 % geplantes Risiko je Trade. Ganze Stücke zum nächsten regulären Eröffnungskurs. Stoppabstand: zweimal die mittlere True Range über 14 Sitzungen. Ausstieg beim Stopp oder zum selben Tagesschluss. Abrechnung nach Handelsschluss, mit 0,10 % modellierten Kosten je Seite. Stoppausführungen zum Schwellenkurs und verfügbare Leihe für Shorts sind Modellannahmen. Kein Nachweis einer profitablen Strategie.</p></details>
+<p><a href="https://github.com/Usubillaga/InvestorAce-Tradingdesk/actions/workflows/index-paper.yml">Automatische Läufe</a></p></main>
+<script>
+const number = n => Number.isFinite(n) ? n.toLocaleString('de-DE',{maximumFractionDigits:2}) : '—';
+function table(id,headers,rows,empty){
+ const box=document.getElementById(id);
+ if(!rows.length){box.textContent=empty;return;}
+ const t=document.createElement('table');
+ for(const [i,row] of [headers,...rows].entries()){
+  const tr=t.insertRow();for(const val of row){const cell=document.createElement(i?'td':'th');cell.textContent=val;tr.append(cell);}
+ }
+ box.append(t);
+}
+async function load(){
+ let journal,source;
+ for(const [url,label] of [['https://raw.githubusercontent.com/Usubillaga/InvestorAce-Tradingdesk/main/dist/index-paper.json','GitHub-Journal'],['index-paper.json','Veröffentlichter Snapshot']]){
+  try{const r=await fetch(url,{cache:'no-store',signal:AbortSignal.timeout(6000)});if(r.ok){journal=await r.json();source=label;break;}}catch{}
+ }
+ if(!journal){document.querySelector('#summary').textContent='Journal derzeit nicht abrufbar.';return;}
+ const j=journal;
+ document.querySelector('#summary').textContent=source+' · Stand '+j.as_of+' · Paper-Kapital '+number(j.equity)+' USD · Ergebnis '+number(j.equity-10000)+' USD';
+ table('signals',['US-Sitzung','Index','ETF','Richtung','Referenz USD','Max. Einsatz USD','Stoppabstand USD'],j.signals.map(s=>[s.session,s.index,s.symbol,s.side,number(s.reference),number(s.side==='FLAT'?0:s.budget),number(s.side==='FLAT'?null:s.stop_distance)]),'Keine vorgemerkten Signale.');
+ table('trades',['US-Sitzung','ETF','Seite','Stück','Einsatz USD','Einstieg','Stopp','Ausstieg','Grund','Kosten USD','Netto USD'],j.trades.slice().reverse().map(t=>[t.session,t.symbol,t.side,t.shares,number(t.notional),number(t.entry),number(t.stop),number(t.exit),t.status,number(t.costs),number(t.net)]),'Noch keine abgerechneten Paper-Trades.');
+}
+load();
+</script></html>

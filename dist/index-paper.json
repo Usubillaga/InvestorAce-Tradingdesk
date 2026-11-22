@@ -1,0 +1,64 @@
+{
+  "model": "index-day-v1",
+  "equity": 10000,
+  "signals": [
+    {
+      "session": "2026-11-23",
+      "submitted": "2026-11-22T19:06:29.624318+00:00",
+      "symbol": "SPY",
+      "index": "S&P 500",
+      "side": "SHORT",
+      "reference": 689.8099975585938,
+      "stop_distance": 32.14715576171875,
+      "budget": 1500.0,
+      "risk": 50.0
+    },
+    {
+      "session": "2026-11-23",
+      "submitted": "2026-11-22T19:06:29.624318+00:00",
+      "symbol": "QQQ",
+      "index": "Nasdaq-100",
+      "side": "SHORT",
+      "reference": 608.4500122070312,
+      "stop_distance": 42.267142159598215,
+      "budget": 1500.0,
+      "risk": 50.0
+    },
+    {
+      "session": "2026-11-23",
+      "submitted": "2026-11-22T19:06:29.624318+00:00",
+      "symbol": "DAX",
+      "index": "DAX",
+      "side": "SHORT",
+      "reference": 41.707000732421875,
+      "stop_distance": 1.7148562840053014,
+      "budget": 1500.0,
+      "risk": 50.0
+    },
+    {
+      "session": "2026-11-23",
+      "submitted": "2026-11-22T19:06:29.624318+00:00",
+      "symbol": "DIA",
+      "index": "Dow Jones Industrial Average",
+      "side": "SHORT",
+      "reference": 481.0799865722656,
+      "stop_distance": 19.805716378348215,
+      "budget": 1500.0,
+      "risk": 50.0
+    },
+    {
+      "session": "2026-11-23",
+      "submitted": "2026-11-22T19:06:29.624318+00:00",
+      "symbol": "IWM",
+      "index": "Russell 2000",
+      "side": "SHORT",
+      "reference": 256.6099853515625,
+      "stop_distance": 12.565708705357142,
+      "budget": 1500.0,
+      "risk": 50.0
+    }
+  ],
+  "trades": [],
+  "as_of": "2026-11-20",
+  "target": "2026-11-23"
+}
