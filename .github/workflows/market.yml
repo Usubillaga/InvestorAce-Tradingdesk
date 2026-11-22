@@ -7,6 +7,7 @@ on:
       - '.github/workflows/market.yml'
       - 'dist/**'
       - 'session_feed.py'
+      - 'correction_study/**'
       - 'snapshot.py'
       - 'test_intraday.cjs'
       - 'index.html'
@@ -29,6 +30,7 @@ jobs:
       - name: Check dashboard and paper execution before publishing
         if: github.event_name != 'schedule'
         run: |
+          python3 -m unittest correction_study.test_model
           node --check dist/app.js
           node --check dist/market.js
           node test_intraday.cjs
