@@ -343,7 +343,7 @@ function scoreRows() {
   return cells(['Ticker','Unternehmen','Fundamental','Opportunity','Signal im Archiv','Regime-Fit','Analystenstatus'],records.map(r=>[
     `<button class="table-link ticker" data-action="score" data-key="${esc(r.ticker)}">${esc(r.ticker)}</button>`,esc(instrumentName(r)),
     num(r.score,'n','Archivierter Fundamental-Score · Modell'),num(r.opportunity.score,'n','Archivierter Opportunity-Score · Modell'),
-    `${esc(present(r.opportunity.label))}<div class="fine">${esc(signalState(r.opportunity))}</div>`,num(r.regime[state.regime],'n','Archivierter Regime-Fit · Modell'),
+    `${r.cashOffer ? 'Barangebot · '+n(r.cashOffer.spread_pct)+' % Bruttospread' : esc(present(r.opportunity.label))}<div class="fine">${esc(signalState(r.opportunity))}</div>`,num(r.regime[state.regime],'n','Archivierter Regime-Fit · Modell'),
     badge(r.review==='REVIEW_REQUIRED'?'Review erforderlich':present(r.review),r.review==='REVIEW_REQUIRED'?'warn':'soft')]));
 }
 function journal() {
@@ -466,6 +466,10 @@ function showScore(ticker) {
     ['Signalgültigkeit',signalState(r.opportunity)],['Unternehmensprofil',r.opportunity.profile?.tags?.join(', ')],
     ['Modell',r.opportunity.version || r.opportunity.schema],['Analystenstatus',r.review],['Kurs',finite(r.price)?`${n(r.price)} ${r.currency}`:'Offen'],
     ['Kursstand',time(r.inputs.quote_observed_at)],['Normalisierung',r.inputs.normalization_status],['Cashflow-Basis',r.inputs.cash_flow_basis]])}
+  ${r.cashOffer ? '<h3>Barangebot</h3>'+kv([['Angebot je Aktie',n(r.cashOffer.price)+' '+r.currency],
+    ['Bruttospread zum archivierten Kurs',pct(r.cashOffer.spread_pct)],['Referenzkurs vor Bekanntgabe',n(r.cashOffer.reference_close)+' '+r.currency],
+    ['Rückkehr zum Referenzkurs (Szenario)',pct(r.cashOffer.reference_return_pct)],['Konditionen geprüft',day(r.cashOffer.reviewed)]]) :
+    kv([['No-Growth Value je Aktie',n(r.valuation?.ngv)],['Kursdeckung',pct(finite(r.valuation?.cover)?100*r.valuation.cover:null)]])}
   ${shortInterestDetails(shortPosition(r.ticker))}
   <h3>Fundamentale Komponenten</h3>${cells(['Komponente','Wert','Gewicht','Beitrag'],r.components.map(c=>[esc(c.label),num(c.value),num(finite(c.nominal_weight)?c.nominal_weight*100:null,'pct'),num(c.contribution)]))}
   <h3>Regime-Fit · archiviertes Modell</h3>${cells(['Regime','Fit','Sektor','Bilanz','Duration','Ausschüttung'],Object.entries(r.regime).map(([k,v])=>[esc(k),num(v),...['sector','balance','duration','payout'].map(c=>num(r.regimeComponents[k]?.[c]))]))}

@@ -61,6 +61,8 @@ def score_rows(record):
                          review=assessment.get('review_status'), issues=assessment.get('issues', []),
                          components=assessment.get('components', []), regime=row.get('regime') or {},
                          regimeComponents=row.get('regime_components') or {},
+                         valuation=select(row, 'ngv cover'),
+                         cashOffer=opp.get('cash_offer'),
                          opportunity=select(opp, 'score label score_lower score_upper expires_at valid_until quote_status status withdrawn version schema signal_basis profile'),
                          inputs=select(inp, 'financial_period financial_published_at financial_retrieved_at quote_observed_at shares shares_asof shares_basis cash_flow_basis normalization_status built'),
                          price=row.get('price'), symbol=inp.get('yf') or ticker))
