@@ -102,5 +102,6 @@
   "history": [],
   "skipped": [],
   "equity": 10000,
-  "benchmark": 10000
+  "benchmark": 10000,
+  "warnings": []
 }
