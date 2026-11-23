@@ -25,11 +25,13 @@ def get(url):
         return response.read()
 
 
-def monitor(day):
+def monitor(day, intraday_at=None, seek_panic=False):
     """Use a hash-verified build after the NY close, with matching VIX and S&P sessions."""
     pointer = json.loads(get(IA + '/_current.json'))
     run = pointer['run_id']
     session_close = CAL.session_close(day).to_pydatetime()
+    opening = CAL.session_open(day).to_pydatetime()
+    latest_reading = None
     for _ in range(24):
         base = f'{IA}/_builds/{run}'
         manifest = json.loads(get(base + '/manifest.json'))
@@ -37,7 +39,7 @@ def monitor(day):
             raise ValueError('Mismatched InvestorAce generation')
         # Skip weekend or late snapshots without pulling their multi-MB observations.
         build_stamp = datetime.strptime(run.split('-')[0], '%Y%m%dT%H%M%S%f').replace(tzinfo=timezone.utc)
-        if build_stamp < session_close:
+        if build_stamp < (opening if intraday_at else session_close):
             break
         if build_stamp > session_close + timedelta(hours=12):
             run = manifest.get('previous_run_id')
@@ -50,19 +52,25 @@ def monitor(day):
         pulse = json.loads(raw).get('_evidence', {}).get('macro', {}).get('pulse') or {}
         if pulse.get('as_of'):
             stamp = datetime.fromisoformat(pulse['as_of'])
-            if stamp < session_close + timedelta(minutes=20):
+            if not intraday_at and stamp < session_close + timedelta(minutes=20):
                 break
             parts = pulse.get('components') or {}
             heat = pulse.get('heat')
             if (isinstance(heat, (int, float)) and 0 <= heat <= 100 and
                     all(parts.get(k, {}).get('date') == day for k in ('vix', 'sp500_ma50', 'sp500_ma200')) and
                     stamp.astimezone(NY).date().isoformat() <= str(CAL.next_session(day).date()) and
-                    stamp <= session_close + timedelta(hours=12)):
-                return dict(day=day, heat=heat, as_of=pulse['as_of'], components=parts,
+                    (opening <= stamp <= build_stamp <= intraday_at < session_close if intraday_at else
+                     stamp <= session_close + timedelta(hours=12))):
+                reading = dict(day=day, intraday=bool(intraday_at), heat=heat, as_of=pulse['as_of'], components=parts,
                             url=base.replace('raw.githubusercontent.com/', 'github.com/').replace('/main/', '/blob/main/') + '/observation.json')
+                if not seek_panic or heat < 20:
+                    return reading
+                latest_reading = latest_reading or reading
         run = manifest.get('previous_run_id')
         if not run:
             break
+    if intraday_at:
+        return latest_reading
     raise ValueError('No verified after-close monitor reading available for ' + day)
 
 
@@ -88,9 +96,9 @@ def select_daily(frame, fund, day, url):
                 weight_pct=round(float(row.weight)*100, 6), as_of=stamp, source=row.source, url=url)
 
 
-def compositions(day):
+def compositions(day, known_at=None):
     import pandas as pd
-    cutoff = CAL.session_close(day).isoformat()
+    cutoff = (known_at or CAL.session_close(day)).isoformat()
     query = urlencode({'until': cutoff, 'per_page': 1})
     sha = json.loads(get('https://api.github.com/repos/kovagent/indexkit/commits?' + query))[0]['sha']
     picked = []
@@ -165,27 +173,34 @@ def settle(state, day, prices):
 
 
 def decide(state, sample, leaders, now):
-    if sample['day'] != state['as_of']:
+    intraday = sample.get('intraday', False)
+    expected = str(CAL.next_session(state['as_of']).date()) if intraday else state['as_of']
+    if sample['day'] != expected:
         raise ValueError('Monitor/ledger session mismatch')
     day = sample['day']
-    state['monitor'] = sample
+    if intraday:
+        if not CAL.session_open(day).to_pydatetime() <= datetime.fromisoformat(sample['as_of']) <= now < CAL.session_close(day).to_pydatetime():
+            return
+        state['intraday_monitor'] = sample
+    else:
+        state['monitor'] = sample
     if leaders:
         if len(leaders) != len(FUNDS) or {x['fund'] for x in leaders} != set(FUNDS):
             raise ValueError('Incomplete basket')
         state['leaders'] = leaders
     if state['pending']:
         return
-    side = ('SELL' if state['position'] and sample['heat'] >= 80 else
-            'BUY' if not state['position'] and sample['heat'] < 20 else None)
+    side = ('SELL' if not intraday and state['position'] and sample['heat'] >= 80 else
+            'BUY' if intraday and not state['position'] and sample['heat'] < 20 else None)
     if not side or (side == 'BUY' and not leaders):
         return
-    target = str(CAL.next_session(day).date())
+    target = day if intraday else str(CAL.next_session(day).date())
     if now >= CAL.session_close(target).to_pydatetime():
         return
     order = dict(side=side, signal_day=day, heat=sample['heat'], target=target,
                  submitted=now.isoformat(), source=sample['url'])
     if side == 'BUY':
-        order['leaders'] = leaders
+        order.update(leaders=leaders, budget=state['cash'], observed_at=sample['as_of'])
     state['pending'] = order
 
 
@@ -224,6 +239,15 @@ def main():
         decide(state, sample, leaders, datetime.now(timezone.utc))
     elif leaders:
         state['leaders'] = leaders
+    today = now.astimezone(NY).date().isoformat()
+    if CAL.is_session(today) and CAL.session_open(today) <= now < CAL.session_close(today):
+        try:
+            reading = monitor(today, intraday_at=now, seek_panic=not state['pending'] and not state['position'])
+            if reading:
+                basket = compositions(today, datetime.fromisoformat(reading['as_of'])) if reading['heat'] < 20 and not state['pending'] and not state['position'] else None
+                decide(state, reading, basket, datetime.now(timezone.utc))
+        except (OSError, ValueError, IndexError, KeyError) as exc:
+            warnings.append('Monitor intradía: ' + str(exc))
     state['warnings'] = warnings
     body = json.dumps(state, ensure_ascii=False, indent=2, allow_nan=False) + '\n'
     if body != before:

@@ -15,13 +15,14 @@ class LedgerTests(unittest.TestCase):
         names = [dict(fund=f, symbol=s) for f, s in zip(h.FUNDS, ['AAPL', 'AAPL', 'GS'])]
         self.state = dict(as_of='2026-11-20', cash=10000., benchmark_cash=10000., position=None,
                           pending=None, history=[], leaders=names)
-        self.now = datetime.fromisoformat('2026-11-23T12:00:00+00:00')
+        self.now = datetime.fromisoformat('2026-11-23T16:00:00+00:00')
         self.prices = {s: {'2026-11-23': (100., 50.), '2026-11-24': (50., 52.)}
                        for s in ['AAPL', 'GS', *h.FUNDS]}
 
     def decide(self, score, leaders=None):
-        day = self.state['as_of']
-        h.decide(self.state, dict(day=day, heat=score, url='archive'),
+        intraday = not self.state['position']
+        day = str(h.CAL.next_session(self.state['as_of']).date()) if intraday else self.state['as_of']
+        h.decide(self.state, dict(day=day, heat=score, url='archive', intraday=intraday, as_of=self.now.isoformat()),
                  self.state['leaders'] if leaders is None else leaders, self.now)
 
     def test_panic_boundary_next_close_overlap_and_euphoria_exit(self):
@@ -50,6 +51,10 @@ class LedgerTests(unittest.TestCase):
         self.assertIsNone(self.state['pending'])
         self.now = datetime.fromisoformat('2026-11-23T21:00:00+00:00')
         self.decide(12)
+        self.assertIsNone(self.state['pending'])
+
+    def test_daily_panic_cannot_buy(self):
+        h.decide(self.state, dict(day=self.state['as_of'], heat=10, url='archive'), self.state['leaders'], self.now)
         self.assertIsNone(self.state['pending'])
 
     def test_early_close(self):
