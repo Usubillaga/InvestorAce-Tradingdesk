@@ -1,0 +1,53 @@
+name: Codex panic and euphoria paper journal
+on:
+  workflow_dispatch:
+  pull_request:
+    paths: ['heat_leaders.py', 'test_heat_leaders.py', 'research/panic_euphoria/**', 'dist/heat-*', '.github/workflows/heat-leaders.yml']
+  push:
+    branches: [main]
+    paths: ['heat_leaders.py', 'test_heat_leaders.py', '.github/workflows/heat-leaders.yml']
+  schedule:
+    - cron: '45 1 * * 2-6'
+    - cron: '35 15,22 * * 1-5'
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - run: pip install 'exchange-calendars==4.11.3' 'pandas==2.3.3' 'pyarrow>=17,<24'
+      - run: python -m unittest test_heat_leaders && python research/panic_euphoria/replay.py && git diff --exit-code -- dist/heat-study.json
+  record:
+    needs: verify
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    permissions:
+      contents: write
+    concurrency:
+      group: index-paper-ledger
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: main
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - run: pip install 'exchange-calendars==4.11.3' 'pandas==2.3.3' 'pyarrow>=17,<24'
+      - run: python heat_leaders.py
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+      - name: Save paper account
+        run: |
+          git add dist/heat-account.json
+          if git diff --cached --quiet; then exit 0; fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'Record Codex panic and euphoria paper account'
+          git pull --rebase origin main
+          git push origin HEAD:main
