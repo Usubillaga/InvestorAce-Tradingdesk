@@ -8,7 +8,8 @@ on:
     paths: ['heat_leaders.py', 'test_heat_leaders.py', '.github/workflows/heat-leaders.yml']
   schedule:
     - cron: '45 1 * * 2-6'
-    - cron: '35 15,22 * * 1-5'
+    - cron: '*/10 13-20 * * 1-5'
+    - cron: '35 22 * * 1-5'
 permissions:
   contents: read
 jobs:
