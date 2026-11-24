@@ -25,7 +25,7 @@ def get(url):
         return response.read()
 
 
-def monitor(day, intraday_at=None, seek_panic=False):
+def monitor(day, intraday_at=None, seek_panic=False, since=None):
     """Use a hash-verified build after the NY close, with matching VIX and S&P sessions."""
     pointer = json.loads(get(IA + '/_current.json'))
     run = pointer['run_id']
@@ -56,7 +56,7 @@ def monitor(day, intraday_at=None, seek_panic=False):
                 break
             parts = pulse.get('components') or {}
             heat = pulse.get('heat')
-            if (isinstance(heat, (int, float)) and 0 <= heat <= 100 and
+            if ((since is None or stamp >= since) and isinstance(heat, (int, float)) and 0 <= heat <= 100 and
                     all(parts.get(k, {}).get('date') == day for k in ('vix', 'sp500_ma50', 'sp500_ma200')) and
                     stamp.astimezone(NY).date().isoformat() <= str(CAL.next_session(day).date()) and
                     (opening <= stamp <= build_stamp <= intraday_at < session_close if intraday_at else
@@ -74,7 +74,7 @@ def monitor(day, intraday_at=None, seek_panic=False):
     raise ValueError('No verified after-close monitor reading available for ' + day)
 
 
-def select_daily(frame, fund, day, url):
+def daily_weights(frame, fund, day):
     slug, minimum = FUNDS[fund]
     sources = {'spdr_cdn', 'ishares_cdn'} if slug != 'ndx' else {'invesco_cdn'}
     frame = frame[frame.source.isin(sources)].copy()
@@ -91,24 +91,30 @@ def select_daily(frame, fund, day, url):
             or (datetime.fromisoformat(day) - datetime.fromisoformat(stamp)).days > 7
             or not .9 <= basket.weight.sum() <= 1.1):
         raise ValueError(f'{fund}: stale or incomplete holdings for {day}')
-    row = basket.sort_values(['weight', 'ticker'], ascending=[False, True]).iloc[0]
+    return basket.sort_values(['weight', 'ticker'], ascending=[False, True])
+
+
+def select_daily(frame, fund, day, url):
+    row = daily_weights(frame, fund, day).iloc[0]
+    stamp = row['day']
     return dict(fund=fund, symbol=row.ticker.replace('.', '-'), name=row['name'],
                 weight_pct=round(float(row.weight)*100, 6), as_of=stamp, source=row.source, url=url)
 
 
-def compositions(day, known_at=None):
+def compositions(day, known_at=None, *, funds=FUNDS, select=select_daily):
     import pandas as pd
     cutoff = (known_at or CAL.session_close(day)).isoformat()
     query = urlencode({'until': cutoff, 'per_page': 1})
     sha = json.loads(get('https://api.github.com/repos/kovagent/indexkit/commits?' + query))[0]['sha']
     picked = []
-    for fund, (slug, _) in FUNDS.items():
+    for fund in funds:
+        slug, _ = FUNDS[fund]
         first = datetime.fromisoformat(day).replace(day=1)
         for month in (day[:7], (first-timedelta(days=1)).strftime('%Y-%m')):
             path = f'data/{slug}/{slug}-{month}.parquet'
             try:
                 raw = get(f'https://raw.githubusercontent.com/kovagent/indexkit/{sha}/{path}')
-                row = select_daily(pd.read_parquet(io.BytesIO(raw)), fund, day,
+                row = select(pd.read_parquet(io.BytesIO(raw)), fund, day,
                                    f'https://github.com/kovagent/indexkit/blob/{sha}/{path}')
             except (OSError, ValueError):
                 if month == day[:7]:
