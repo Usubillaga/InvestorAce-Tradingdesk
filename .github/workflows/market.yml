@@ -11,6 +11,8 @@ on:
       - 'snapshot.py'
       - 'test_intraday.cjs'
       - 'test_heat_paper.cjs'
+      - 'package_panic.cjs'
+      - 'tests/panic_navigation.py'
       - 'index.html'
   schedule:
     - cron: '7,37 7-21 * * 1-5'
@@ -74,6 +76,10 @@ jobs:
           mkdir -p _site
           cp index.html _site/
           cp -R dist _site/
+          node package_panic.cjs _site/dist
+      - name: Check native paper navigation on phone and desktop
+        if: github.event_name != 'schedule'
+        run: python3 tests/panic_navigation.py _site/dist
       - uses: actions/upload-pages-artifact@v3
         with:
           path: _site

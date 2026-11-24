@@ -4,6 +4,7 @@ const $ = (q, root = document) => root.querySelector(q);
 const main = $('#main');
 const dialog = $('#dialog');
 const symbols = {
+  'panic-paper':'<path d="M3 16h4l3-10 4 14 3-9h4"/>',
   overview:'<rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>',
   active:'<path d="M3 12h4l3-7 4 14 3-7h4"/>', paper:'<rect x="4" y="4" width="16" height="17" rx="2"/><path d="M8 8h8m-8 4h8m-8 4h4"/>',
   evidence:'<path d="M4 20V5m0 15h16M8 16v-4m4 4V8m4 8v-6m4 6V5"/>',
@@ -42,7 +43,7 @@ const panelHead = (title,sub='',action='') => `<div class="panel-head"><div><h2>
 const strategyNames = {timing:'Opportunity + Timing', opportunity:'Opportunity', fundamental:'Fundamentals', 'v1.5':'Exit-Experiment v1.5', 'v1.6':'Exit-Experiment v1.6'};
 const strategy = key => strategyNames[key] || present(key);
 const navItems = [
-  ['overview','Übersicht'],['market','Markt & Intraday'],['active','Aktives Trading'],['paper','Paper-Trading'],
+  ['overview','Übersicht'],['panic-paper',DeskPanic.label()],['market','Markt & Intraday'],['active','Aktives Trading'],['paper','Paper-Trading'],
   ['long-short','Long / Short · Paper'],
   ['scanner','Scanner-Universum'],['evidence','Modellvergleich'],['score','Scorecard & Regime'],['journal','Journal & Reviews'],
 ];
@@ -51,6 +52,7 @@ const stages = [['backtest','Backtest'],['frozen','Frozen-OOS'],['paper','Paper-
 const statusNames = {Open:'Offen', Pending:'Ausstehend', Blocked:'Einstieg gesperrt', Filled:'Ausgeführt', Rejected:'Abgelehnt', Expired:'Abgelaufen', Cancelled:'Storniert', Planned:'Geplant', Closed:'Abgeschlossen'};
 const defaults = {page:'overview', evidence:'backtest', account:'all', window:0, mode:'trades', journalSource:'paper', filter:{}, queries:{}, regime:'REFLATION'};
 let data;
+let snapshotFailed = false;
 let local = {trades:[], reviews:[], changes:[], rejected:[]};
 let state = defaults;
 let timer;
@@ -374,16 +376,32 @@ function historyRows(rows) {
     badge('Lokal · manuell','warn')]));
 }
 function paint(focus=false) {
-  $('#nav').innerHTML = navItems.map(([key,title],i)=>
-    (i===0?'<span class="nav-label">Arbeitsbereich</span>':i===3?'<span class="nav-label">Analyse & Prüfung</span>':'')+
-    `<a class="nav-item" href="#${key}" ${state.page===key?'aria-current="page"':''}>${icon(key)}${esc(title)}</a>`).join('');
-  $('#crumb').textContent = navItems.find(([k])=>k===state.page)[1];
-  $('#top-status').textContent = data.current?'Build verifiziert':'Build offen';
-  $('#build-top').classList.toggle('missing',!data.current);
-  $('#export-top').innerHTML = icon('download')+' Exportieren';
-  $('#original').innerHTML = icon('link')+' InvestorAce Hauptreport';
-  $('#footer-data').textContent = data.captured ? `Archivierter Datenstand · ${time(data.captured)}` : 'Archivierter Datenstand · offen';
-  main.innerHTML = ({overview,market:()=>header('Markt & Intraday','Indexkurse, Marktbreite und regelbasierte Paper-Ausführungen.')+marketPanel()+sessionBook(),scanner:scannerPage,active:live,paper:paperPage,'long-short':()=>header('Long / Short','Automatisches Paper-Konto von InvestorAce.')+competitionPanel()+codexPaperPanel(),evidence:evidencePage,score:scorePage,journal})[state.page]();
+  const nav = $('#nav');
+  if (!nav.children.length) {
+    nav.innerHTML = navItems.map(([key,title],i)=>
+      (i===0?'<span class="nav-label">Arbeitsbereich</span>':key==='paper'?'<span class="nav-label">Analyse & Prüfung</span>':'')+
+      `<a class="nav-item" href="#${key}">${icon(key)}<span>${esc(title)}</span></a>`).join('');
+  }
+  nav.querySelector('[href="#panic-paper"] span').textContent = DeskPanic.label();
+  const active = nav.querySelector(`[href="#${state.page}"]`);
+  if (!active.hasAttribute('aria-current')) {
+    nav.querySelector('[aria-current]')?.removeAttribute('aria-current');
+    active.setAttribute('aria-current','page');
+  }
+  $('#crumb').textContent = active.textContent;
+  if (data) {
+    $('#top-status').textContent = data.current?'Build verifiziert':'Build offen';
+    $('#build-top').classList.toggle('missing',!data.current);
+    $('#export-top').innerHTML = icon('download')+' Exportieren';
+    $('#original').innerHTML = icon('link')+' InvestorAce Hauptreport';
+    $('#footer-data').textContent = data.captured ? `Archivierter Datenstand · ${time(data.captured)}` : 'Archivierter Datenstand · offen';
+  }
+  if (state.page==='panic-paper') {
+    DeskPanic.mount(main,location.hash.split('/')[1]);
+  } else if (!data) {
+    main.innerHTML=snapshotFailed ? notice('Der archivierte Datensatz konnte nicht geladen werden. <a href="https://usubillaga.github.io/InvestorAce/">InvestorAce-Hauptreport öffnen</a>.') :
+      '<div class="loading" role="status">InvestorAce-Daten werden geladen …</div>';
+  } else main.innerHTML = ({overview,market:()=>header('Markt & Intraday','Indexkurse, Marktbreite und regelbasierte Paper-Ausführungen.')+marketPanel()+sessionBook(),scanner:scannerPage,active:live,paper:paperPage,'long-short':()=>header('Long / Short','Automatisches Paper-Konto von InvestorAce.')+competitionPanel()+codexPaperPanel(),evidence:evidencePage,score:scorePage,journal})[state.page]();
   if (focus) main.focus({preventScroll:true});
 }
 function show(title, content) {
@@ -670,6 +688,12 @@ function go(hash) {
   else location.hash = hash;
 }
 document.addEventListener('click',e=>{
+  const locale=e.target.closest('[data-panic-language]');
+  if (locale && !e.ctrlKey && !e.metaKey && !e.shiftKey && !e.altKey) {
+    e.preventDefault(); DeskPanic.changeLanguage(locale); paint();
+    main.querySelector('[data-panic-language][aria-current]')?.focus({preventScroll:true});
+    return;
+  }
   const b = e.target.closest('[data-action]');
   if (!b || !data) return;
   const {action,key,value} = b.dataset;
@@ -705,9 +729,8 @@ dialog.addEventListener('submit',async e=>{
   catch (err) { $('.form-error',e.target).textContent=err.message; }
 });
 window.addEventListener('hashchange',()=>{
-  if (!data) return;
   if (dialog.open) dialog.close();
-  route(); paint(true); window.scrollTo(0,0);
+  route(); window.scrollTo(0,0); paint(true);
 });
 $('#build-top').addEventListener('click',()=>data && showBuild(data.current));
 $('#export-top').addEventListener('click',()=>data && exportForm());
@@ -720,6 +743,7 @@ async function loadDeskSnapshot() {
   }
   throw new Error('snapshot');
 }
+route(); paint();
 loadDeskSnapshot().then(s=>{
   data = s; state.regime = data.macro?.regime || 'REFLATION'; readLocal(); route(); paint(); refreshSession(); refreshExperiments(); refreshCodexPaper(); refreshCompetitionTrades(); refreshMarketTrend(); setInterval(refreshSession, 60000);
   setInterval(refreshExperiments, 900000);
@@ -727,7 +751,7 @@ loadDeskSnapshot().then(s=>{
   setInterval(refreshCompetitionTrades, 900000);
   setInterval(refreshMarketTrend, 900000);
 }).catch(()=>{
-  main.innerHTML = notice('Der archivierte Datensatz konnte nicht geladen werden. <a href="https://usubillaga.github.io/InvestorAce/">InvestorAce-Hauptreport öffnen</a>.');
+  snapshotFailed=true; paint();
 });
 
 

@@ -100,5 +100,6 @@ class LedgerTests(unittest.TestCase):
         self.assertTrue(all(t['signal']<t['entry']<=t['exit_signal']<t['exit']
                             and t['heat']<20 and t['exit_heat']>=80 for t in study['episodes']))
         self.assertEqual([p['offset_n'] for p in study['periods'][1:]], [20]*3)
-        self.assertEqual((root/'dist/index.html').read_text().count(
-            'href="https://usubillaga.github.io/InvestorAce/index.es.html#panic-paper"'), 1)
+        shell = (root/'dist/index.html').read_text()
+        self.assertNotIn('InvestorAce/index.es.html#panic-paper', shell)
+        self.assertIn("['panic-paper',DeskPanic.label()]", (root/'dist/app.js').read_text())

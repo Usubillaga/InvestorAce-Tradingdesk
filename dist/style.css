@@ -75,3 +75,20 @@ dialog{width:min(760px,calc(100% - 24px));max-height:88dvh;overflow:auto;border:
 .raw{white-space:pre-wrap;overflow-wrap:anywhere;max-height:18rem;overflow:auto}
 
 .market-layout{display:grid;grid-template-columns:minmax(0,2fr) minmax(220px,1fr);gap:16px;margin:18px 0}.market-heading{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap}.market-price{font-size:2rem;font-variant-numeric:tabular-nums}.market-price small,figcaption{font-size:.85rem;color:var(--muted)}.price-plot{margin:14px 0}.price-plot svg{width:100%;height:130px;display:block}.breadthbar{display:flex;height:14px;border-radius:4px;overflow:hidden;background:#72808b}.breadthbar i{background:#54c7a3}.breadthbar b{background:#ce706f}#desk-results{max-height:50vh;overflow:auto;margin:12px;background:var(--panel)}.top-actions{flex-wrap:wrap}#desk-search{max-width:min(100%,230px)}@media(max-width:760px){.market-layout{grid-template-columns:1fr}.topbar{flex-wrap:wrap}.top-actions{max-width:100%}}
+
+/* The paper portfolios occupy the same workspace as the other desk views. */
+.nav-item[href="#panic-paper"][aria-current]{background:#352337;border-color:#78536d;color:#ffbddb}
+.desk-panic{--pink:#ffb4d5;max-width:1180px}.desk-panic h1{margin:.25rem 0;font-size:clamp(1.7rem,4vw,2.4rem)}
+.desk-panic .panic-languages{display:flex;gap:.8rem;flex-wrap:wrap;font-size:.86rem}.panic-languages [aria-current]{font-weight:700;text-decoration:underline}
+.desk-panic h3{margin:1rem 0 .35rem}.desk-panic p{color:var(--muted);margin:7px 0 12px}.desk-panic a,.desk-panic summary{color:var(--pink)}
+.desk-panic .pp-signal{border-left:3px solid var(--pink);padding:3px 14px;margin:17px 0}.desk-panic .pp-signal h3{margin:0}.desk-panic .pp-signal strong{font-size:1.35rem}
+.desk-panic .pp-books{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.desk-panic article,.desk-panic details{min-width:0;background:var(--panel);border:1px solid var(--line);border-radius:11px;padding:15px}
+.desk-panic article h3{margin:0}.desk-panic .pp-state{color:var(--pink);font-size:.87rem}.desk-panic .pp-value{display:block;font-size:1.5rem;font-variant-numeric:tabular-nums}
+.desk-panic dl{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:3px 12px;max-width:550px}.desk-panic dt{color:var(--muted)}.desk-panic dd{margin:0;text-align:right}
+.desk-panic details{margin:8px 0}.desk-panic summary{cursor:pointer;font-weight:650}.desk-panic .pp-scroll{overflow:auto}.desk-panic .pp-scroll table{min-width:max-content;width:100%}
+.desk-panic .pp-studies{margin-top:16px}
+@media(max-width:780px){.desk-panic .pp-books{grid-template-columns:1fr}}
+
+@media(max-width:900px){.shell{grid-template-columns:minmax(0,1fr)}.sidebar,#nav{min-width:0}}
+@media(min-width:901px){.sidebar{overflow-y:auto}}
