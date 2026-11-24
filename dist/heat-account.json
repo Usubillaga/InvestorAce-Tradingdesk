@@ -4,63 +4,63 @@
   "initial": 10000,
   "cash": 0.0,
   "benchmark_cash": 0.0,
-  "as_of": "2026-11-23",
+  "as_of": "2026-11-24",
   "monitor": {
-    "day": "2026-11-23",
+    "day": "2026-11-24",
     "intraday": false,
-    "heat": 29.7,
-    "as_of": "2026-11-23T23:42:33.463717+00:00",
+    "heat": 29.6,
+    "as_of": "2026-11-24T21:56:45.111164+00:00",
     "components": {
       "sp500_ma200": {
-        "date": "2026-11-23",
-        "score": 42.3,
-        "value": -1.54
+        "date": "2026-11-24",
+        "score": 39.8,
+        "value": -2.04
       },
       "sp500_ma50": {
-        "date": "2026-11-23",
-        "score": 0.1,
-        "value": -4.99
+        "date": "2026-11-24",
+        "score": 0.0,
+        "value": -5.37
       },
       "universe_above_ma200": {
         "count": 126,
-        "score": 31.7,
-        "value": 31.7
+        "score": 33.3,
+        "value": 33.3
       },
       "vix": {
-        "date": "2026-11-23",
-        "score": 44.6,
-        "value": 26.62
+        "date": "2026-11-24",
+        "score": 45.5,
+        "value": 26.36
       }
     },
-    "url": "https://github.com/Usubillaga/InvestorAce/blob/main/history/_builds/20261123T234249721004-a6fe0a709d4545a5a56802d98c67ae08/observation.json"
+    "url": "https://github.com/Usubillaga/InvestorAce/blob/main/history/_builds/20261124T215658367051-72d377b9d5854254ad55d26dc966acbf/observation.json"
   },
   "leaders": [
     {
       "fund": "SPY",
       "symbol": "AAPL",
       "name": "APPLE INC",
-      "weight_pct": 8.224947,
-      "as_of": "2026-11-19",
+      "weight_pct": 8.377218,
+      "as_of": "2026-11-20",
       "source": "spdr_cdn",
-      "url": "https://github.com/kovagent/indexkit/blob/f5671a5e273e27392d427f9b68978a1f2816edd0/data/sp500/sp500-2026-11.parquet"
+      "url": "https://github.com/kovagent/indexkit/blob/acf2ed32397cfa939bf7a71402070fbbb04c760a/data/sp500/sp500-2026-11.parquet"
     },
     {
       "fund": "QQQ",
       "symbol": "AAPL",
       "name": "Apple Inc",
-      "weight_pct": 8.859377,
-      "as_of": "2026-11-19",
+      "weight_pct": 9.205365,
+      "as_of": "2026-11-23",
       "source": "invesco_cdn",
-      "url": "https://github.com/kovagent/indexkit/blob/f5671a5e273e27392d427f9b68978a1f2816edd0/data/ndx/ndx-2026-11.parquet"
+      "url": "https://github.com/kovagent/indexkit/blob/acf2ed32397cfa939bf7a71402070fbbb04c760a/data/ndx/ndx-2026-11.parquet"
     },
     {
       "fund": "DIA",
       "symbol": "GS",
       "name": "GOLDMAN SACHS GROUP INC",
-      "weight_pct": 10.245464,
-      "as_of": "2026-11-19",
+      "weight_pct": 9.754781,
+      "as_of": "2026-11-20",
       "source": "spdr_cdn",
-      "url": "https://github.com/kovagent/indexkit/blob/f5671a5e273e27392d427f9b68978a1f2816edd0/data/dji/dji-2026-11.parquet"
+      "url": "https://github.com/kovagent/indexkit/blob/acf2ed32397cfa939bf7a71402070fbbb04c760a/data/dji/dji-2026-11.parquet"
     }
   ],
   "pending": null,
@@ -109,7 +109,7 @@
         "symbol": "AAPL",
         "entry_price": 349.0799865722656,
         "entry_units": 9.53937051133111,
-        "value": 3330.0033300033306
+        "value": 3377.6049868154423
       },
       {
         "side": "etf",
@@ -117,7 +117,7 @@
         "symbol": "SPY",
         "entry_price": 722.2899780273438,
         "entry_units": 4.610341319005905,
-        "value": 3330.0033300033306
+        "value": 3313.821268343658
       },
       {
         "side": "leader",
@@ -125,7 +125,7 @@
         "symbol": "AAPL",
         "entry_price": 349.0799865722656,
         "entry_units": 9.53937051133111,
-        "value": 3330.0033300033306
+        "value": 3377.6049868154423
       },
       {
         "side": "etf",
@@ -133,7 +133,7 @@
         "symbol": "QQQ",
         "entry_price": 651.030029296875,
         "entry_units": 5.114976545090859,
-        "value": 3330.0033300033306
+        "value": 3263.8664085451205
       },
       {
         "side": "leader",
@@ -141,7 +141,7 @@
         "symbol": "GS",
         "entry_price": 823.6199951171875,
         "entry_units": 4.043130751736456,
-        "value": 3330.0033300033306
+        "value": 3258.8443274820156
       },
       {
         "side": "etf",
@@ -149,14 +149,14 @@
         "symbol": "DIA",
         "entry_price": 495.79998779296875,
         "entry_units": 6.716424792236664,
-        "value": 3330.0033300033306
+        "value": 3356.466060082265
       }
     ]
   },
   "history": [],
   "skipped": [],
-  "equity": 9990.009990009992,
-  "benchmark": 9990.009990009992,
+  "equity": 10014.054301112901,
+  "benchmark": 9934.153736971044,
   "warnings": [],
   "intraday_monitor": {
     "day": "2026-11-24",
