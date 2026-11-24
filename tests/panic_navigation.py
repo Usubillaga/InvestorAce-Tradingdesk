@@ -64,7 +64,7 @@ def main(directory):
         for width in (390, 1280):
             with tempfile.TemporaryDirectory() as profile:
                 run = subprocess.run([chrome, '--headless', '--disable-gpu', '--no-sandbox', '--no-proxy-server',
-                                      '--host-resolver-rules=MAP * ~NOTFOUND', '--window-size=1440,1000',
+                                      '--host-resolver-rules=MAP raw.githubusercontent.com ~NOTFOUND', '--window-size=1440,1000',
                                       '--user-data-dir='+profile, '--virtual-time-budget=18000', '--dump-dom',
                                       f'http://127.0.0.1:{server.server_port}/check?width={width}'],
                                      capture_output=True, text=True, timeout=60, check=True)
