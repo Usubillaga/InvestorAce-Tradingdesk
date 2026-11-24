@@ -10,6 +10,7 @@ on:
       - 'correction_study/**'
       - 'snapshot.py'
       - 'test_intraday.cjs'
+      - 'test_heat_paper.cjs'
       - 'index.html'
   schedule:
     - cron: '7,37 7-21 * * 1-5'
@@ -34,6 +35,7 @@ jobs:
           node --check dist/app.js
           node --check dist/market.js
           node test_intraday.cjs
+          node --test test_heat_paper.cjs
           python3 -m py_compile snapshot.py session_feed.py
       - name: Identify published InvestorAce data
         id: archive

@@ -1,10 +1,30 @@
 <!doctype html>
-<html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Panik · 5 / 6 · InvestorAce</title><link rel="stylesheet" href="heat-comparison.css">
-<style>.portfolio h2,.overlap b{color:var(--pink)}.two{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,290px),1fr));gap:14px}.two .card{margin:0}.amount{font-variant-numeric:tabular-nums;font-weight:650;font-size:2rem}.details{display:grid;grid-template-columns:auto 1fr;gap:4px 12px}.details dt{color:var(--muted)}.details dd{margin:0;text-align:right;font-variant-numeric:tabular-nums}.portfolio{min-width:0}nav [aria-current]{color:var(--ink)}.orders li{margin:.4em 0;overflow-wrap:anywhere}tbody td:first-child small{display:block;color:var(--muted)}.scroll:focus{outline:2px solid var(--pink)}</style></head>
-<body><nav><b>InvestorAce</b><a href="./">TradingDesk</a><a href="?lang=de" hreflang="de">DE</a><a href="?lang=en" hreflang="en">EN</a><a href="?lang=es" hreflang="es">ES</a></nav>
-<main><header><p id="kicker">Paper-Test · USD</p><h1 id="title">Fünf oder sechs Indexführer</h1><p id="intro"></p></header>
-<p id="status" role="status">…</p><div class="two" id="books"></div>
-<section class="card"><h2 id="universe"></h2><p id="method"></p><div class="scroll" tabindex="0" id="ranking"></div><p id="sources" class="meta"></p></section>
-<section class="card"><h2 id="rules"></h2><p id="protocol"></p><p id="checks" class="meta"></p></section>
-<footer class="links"><a id="legacy" href="heat-leaders.en.html"></a><a id="claude" href="https://usubillaga.github.io/InvestorAce/index-leaders.html"></a><a id="journal" href="https://github.com/Usubillaga/InvestorAce-Tradingdesk/blob/main/dist/heat-overlap.json">JSON</a></footer>
-<noscript><p>JavaScript · <a href="heat-overlap.json">Paper journal (JSON)</a></p></noscript></main><script src="heat-overlap.js" defer></script></body></html>
+<html lang="de">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Panik · Drei Paper-Konten · InvestorAce</title>
+<link rel="stylesheet" href="heat-comparison.css"><link rel="stylesheet" href="heat-paper.css"></head>
+<body>
+<nav><b>InvestorAce <span>TradingDesk</span></b><a href="./">TradingDesk</a><a href="?lang=de" hreflang="de">DE</a><a href="?lang=en" hreflang="en">EN</a><a href="?lang=es" hreflang="es">ES</a></nav>
+<main>
+<header><h1 data-i="title">Panik · Drei Paper-Konten</h1><p data-i="intro">Vergleiche das ursprüngliche Indexkonto mit den beiden Körben aus fünf und sechs Unternehmen.</p></header>
+<section class="signal" aria-labelledby="thermo-title">
+  <div><h2 id="thermo-title" data-i="thermo">Panikthermometer</h2><p class="meta" id="reading-source"></p></div>
+  <div><strong id="reading">—</strong><span> / 100</span></div>
+  <div class="thermo-bar" aria-hidden="true"><i></i><b id="marker" hidden></b></div>
+  <p id="gap" class="meta"></p>
+</section>
+<div class="books" id="books" aria-live="polite"></div>
+<section class="card" id="account"><h2 id="detail-title" data-i="detail">Kontodetails</h2>
+  <div id="account-tabs" class="tabs" role="group" aria-labelledby="detail-title"></div>
+  <div id="detail" aria-live="polite"><p data-i="loading">Lade Kontodaten …</p></div>
+</section>
+<section class="card"><h2 data-i="candidates">Kandidaten für den nächsten Panikkauf</h2><p data-i="method"></p>
+  <div class="scroll" tabindex="0" id="ranking"></div><p id="sources" class="meta"></p></section>
+<section class="card"><h2 data-i="external">Claudes drei Vergleichskonten</h2><p data-i="externalNote"></p>
+  <div class="scroll" tabindex="0" id="external-accounts"></div>
+  <p><a href="https://usubillaga.github.io/InvestorAce/index-leaders.html" data-i="claudeLink">InvestorAce · Panic &amp; index leaders ↗</a></p></section>
+<footer class="links"><a id="legacy-link" href="heat-leaders.en.html" data-i="legacyLink">Journal des ursprünglichen Kontos</a><a id="study-link" href="heat-comparison.de.html" data-i="study">Historischer Schwellenvergleich</a></footer>
+<noscript><p>Paper journals · <a href="heat-account.json">SPY / QQQ / DIA</a> · <a href="heat-overlap.json">5 / 6</a> · <a href="https://usubillaga.github.io/InvestorAce/index-leaders.html">Claude</a></p></noscript>
+</main>
+<script defer src="heat-paper-i18n.js"></script><script defer src="heat-paper-model.js"></script><script defer src="heat-overlap.js"></script>
+</body></html>
