@@ -78,6 +78,13 @@ function nextStep(book) {
   if (book.eligible && book.asOf < book.eligible) return t.locked+' '+book.eligible+'.';
   return t.sellRule;
 }
+function balanceDate(book) {
+  if (book.start) {
+    const launchDay = new Intl.DateTimeFormat('sv-SE', {timeZone:'America/New_York'}).format(new Date(book.start));
+    if (book.asOf < launchDay) return [t.openingBalance, launchDay];
+  }
+  return [t.asOf, book.asOf];
+}
 function card(key, book) {
   const section=element('section',undefined,'book');
   section.dataset.key=key;
@@ -87,7 +94,7 @@ function card(key, book) {
   section.append(element('span',stateLabel(book),'state'),element('strong',money(book.nav),'amount'),
     element('span',t.result+' '+money(book.nav-book.initial)+' ('+pct(gain)+')','delta '+(gain<0?'negative':gain>0?'positive':'')),
     metrics([[t.cash,money(book.cash)],[t.holdings,String(book.holdings.length)],[t.rule,t.below+' 20']]),
-    element('p',t.next+' · '+nextStep(book),'next'),element('p',t.asOf+' · '+book.asOf,'meta'),
+    element('p',t.next+' · '+nextStep(book),'next'),element('p',balanceDate(book).join(' · '),'meta'),
     link(t.show,'#account-'+key));
   return section;
 }
@@ -130,7 +137,7 @@ function entries(book) {
 function detailView(book) {
   const frag=document.createDocumentFragment();
   frag.append(element('h3',labels[book.key]),element('p',book.size?t.overlapRule:t.originalRule));
-  const stats=[[t.initial,money(book.initial)],[t.asOf,book.asOf],[t.fee,pct(0.001)]];
+  const stats=[[t.initial,money(book.initial)],balanceDate(book),[t.fee,pct(0.001)]];
   if (book.start) stats.push([t.started,when(book.start)]);
   if (book.entry) stats.push([t.open,book.entry]);
   frag.append(metrics(stats,true),element('h3',t.holdings),openPositions(book),element('h3',t.bench),
