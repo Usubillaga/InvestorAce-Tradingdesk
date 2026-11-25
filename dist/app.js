@@ -323,6 +323,7 @@ function frozenPage() {
     <article class="panel">${panelHead('Einordnung','Datenstatus je Kohorte')}<div class="details"><p>Signal- und Bewertungs-Builds sind archiviert und geprüft. Die Rendite bleibt während des Fensters vorläufig. Auswahl, Gewichte und Termine wurden gegen die Vorabfestlegung in Git abgeglichen. Die Bewertung verwendet je Sitzung den ersten verfügbaren archivierten Schlusskurs.</p></div></article></div>`;
 }
 const issuerReports = {
+  FPS: ['Forgent Power Solutions', 'earnings/fps-deep-dive-2026-11-25.html'],
   JD: ['JD.com', 'earnings/jd-deep-dive-2026-11-25.html'],
   BIDU: ['Baidu', 'earnings/bidu-deep-dive-2026-11-25.html']
 };
