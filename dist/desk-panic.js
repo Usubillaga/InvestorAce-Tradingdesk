@@ -87,7 +87,7 @@ const DeskPanic = (() => {
     const body=complete ? paperPanel(lang,records,paperWords,PaperModel) :
       '<p role="status">'+esc(pending||!checked?paperWords[lang].loading:paperWords[lang].unavailable)+'</p>';
     container.lang=lang;
-    container.innerHTML=languageNav(lang)+body;
+    container.innerHTML=languageNav(lang)+'<ia-panic-alert lang="'+lang+'"></ia-panic-alert>'+body;
     for(const id of open){const d=document.getElementById(id);if(d) d.open=true;}
     if(focused)document.getElementById(focused)?.querySelector('summary')?.focus({preventScroll:true});
     shownLanguage=lang;displayed=revision;
