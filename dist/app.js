@@ -322,6 +322,10 @@ function frozenPage() {
       `${num(h.exit_close)} ${esc(h.currency)}<div class="fine">${day(h.exit_close_date)}</div>`,num(h.return_pct,'pct')]))}</article>`).join('') : notice('Keine Kohorte ist vollständig mit einem verifizierten Signal-Build verbunden.')}
     <article class="panel">${panelHead('Einordnung','Datenstatus je Kohorte')}<div class="details"><p>Signal- und Bewertungs-Builds sind archiviert und geprüft. Die Rendite bleibt während des Fensters vorläufig. Auswahl, Gewichte und Termine wurden gegen die Vorabfestlegung in Git abgeglichen. Die Bewertung verwendet je Sitzung den ersten verfügbaren archivierten Schlusskurs.</p></div></article></div>`;
 }
+const issuerReports = {
+  JD: ['JD.com', 'earnings/jd-deep-dive-2026-11-25.html'],
+  BIDU: ['Baidu', 'earnings/bidu-deep-dive-2026-11-25.html']
+};
 function scorePage() {
   const regimes = ['GOLDILOCKS','REFLATION','INFLATION','STAGFLATION','RECESSION'];
   const macro = data.macro;
@@ -329,6 +333,8 @@ function scorePage() {
   + `<div class="stack"><article class="panel">${panelHead('Makro-Snapshot','Research · archivierte Modellbeobachtung')}
     <div class="details">${kv([['Regime',macro?.regime],['Fensterende',day(macro?.regime_input?.end)],['Fenster',finite(macro?.regime_input?.sessions)?`${n(macro.regime_input.sessions)} Sitzungen`:'Offen'],['Datenbasis',macro?.source],['Nachweis','Berichts-Build geprüft']])}
     <p>Fundamental-Score, Opportunity-Signal, Regime-Fit und Analystenstatus werden getrennt angezeigt. Jede Zeile beschreibt den Snapshot-Zeitpunkt.</p></div></article>
+    <article class="panel">${panelHead('Deep Dives','25.11.2026 · ES / EN / DE')}
+      <div class="details">${Object.values(issuerReports).map(([name,url])=>link(url,name)).join(' ')}</div></article>
     <article class="panel">${panelHead('Unternehmen','Research-Snapshot · Werte aus dem Originalmodell')}
       <div class="controls"><label for="regime">Regime-Fit</label><select id="regime" data-select="regime">${regimes.map(r=>`<option ${r===state.regime?'selected':''}>${r}</option>`).join('')}</select>${findInput('score','Ticker oder Firma suchen')}</div>
       <div id="table-result">${scoreRows()}</div></article></div>`;
@@ -339,13 +345,18 @@ function signalState(opp, now=Date.now()) {
   if (!Number.isFinite(expiry)) return 'Gültigkeitsfrist offen';
   return now > expiry ? 'Abgelaufen · Archivwert' : `Archiviert · Frist bis ${time(opp.expires_at)}`;
 }
+function opportunityScore(opp) {
+  if (finite(opp.score)) return n(opp.score);
+  return finite(opp.score_lower) && finite(opp.score_upper)
+    ? n(opp.score_lower) + '–' + n(opp.score_upper) : 'Offen';
+}
 function scoreRows() {
   const q = (state.queries.score || '').trim().toLowerCase();
   const records = data.scorecard.filter(r=>`${r.ticker} ${instrumentName(r)} ${r.sector}`.toLowerCase().includes(q));
   if (!records.length && q) return empty('Kein Treffer im archivierten Scoreboard', 'Stand vom '+time(data.captured))+link(data.pages.home,'Vollständiges InvestorAce-Scoreboard öffnen','button');
   return cells(['Ticker','Unternehmen','Fundamental (Altmodell)','Opportunity','Signal im Archiv','Regime-Fit','Analystenstatus'],records.map(r=>[
     `<button class="table-link ticker" data-action="score" data-key="${esc(r.ticker)}">${esc(r.ticker)}</button>`,esc(instrumentName(r)),
-    num(r.score,'n','Archivierter Fundamental-Score · Altmodell'),num(r.opportunity.score,'n','Archivierter Opportunity-Score · Modell'),
+    num(r.score,'n','Archivierter Fundamental-Score · Altmodell'),esc(opportunityScore(r.opportunity)),
     `${r.cashOffer ? 'Barangebot · '+n(r.cashOffer.spread_pct)+' % Bruttospread' : esc(present(r.opportunity.label))}<div class="fine">${esc(signalState(r.opportunity))}</div>`,num(r.regime[state.regime],'n','Archivierter Regime-Fit · Modell'),
     badge(r.review==='REVIEW_REQUIRED'?'Review erforderlich':present(r.review),r.review==='REVIEW_REQUIRED'?'warn':'soft')]));
 }
@@ -484,7 +495,7 @@ function showScore(ticker) {
   const r = data.scorecard.find(x=>x.ticker===ticker);
   if (!r) return;
   show(`${r.ticker} · ${instrumentName(r)}`,`${badge('Research · Berichts-Build geprüft','info')}
-  ${kv([['Fundamental-Score (Altmodell)',n(r.score)],['Opportunity-Score',n(r.opportunity.score)],['Signal im Archiv',r.opportunity.label],
+  ${kv([['Fundamental-Score (Altmodell)',n(r.score)],['Opportunity-Score',opportunityScore(r.opportunity)],['Signal im Archiv',r.opportunity.label],
     ['Signalgültigkeit',signalState(r.opportunity)],['Unternehmensprofil',r.opportunity.profile?.tags?.join(', ')],
     ['Modell',r.opportunity.version || r.opportunity.schema],['Analystenstatus',r.review],['Kurs',finite(r.price)?`${n(r.price)} ${r.currency}`:'Offen'],
     ['Kursstand',time(r.inputs.quote_observed_at)],['Normalisierung',r.inputs.normalization_status],['Cashflow-Basis',r.inputs.cash_flow_basis]])}
@@ -496,6 +507,7 @@ function showScore(ticker) {
     ['Bewertungs-Cashflow',cashMillions(r.valuation?.valuationCashFlow,r.valuation?.currency)],
     ['Eingepreistes FCF-Wachstum (5 Jahre)',pct(r.valuation?.impliedGrowth)]])}
   ${shortInterestDetails(shortPosition(r.ticker))}
+  ${issuerReports[ticker] ? link(issuerReports[ticker][1], 'Deep dive · ES / EN / DE') : ''}
   <h3>Fundamentale Komponenten</h3>${cells(['Komponente','Wert','Gewicht','Beitrag'],r.components.map(c=>[esc(c.label),num(c.value),num(finite(c.nominal_weight)?c.nominal_weight*100:null,'pct'),num(c.contribution)]))}
   <h3>Regime-Fit · archiviertes Modell</h3>${cells(['Regime','Fit','Sektor','Bilanz','Duration','Ausschüttung'],Object.entries(r.regime).map(([k,v])=>[esc(k),num(v),...['sector','balance','duration','payout'].map(c=>num(r.regimeComponents[k]?.[c]))]))}
   <h3>Offene Einwände</h3>${r.issues.length ? `<ul class="list">${r.issues.map(x=>`<li>${esc(x.message)}</li>`).join('')}</ul>` : '<p class="fine">Erfassung offen, falls kein Einwand dokumentiert ist.</p>'}
