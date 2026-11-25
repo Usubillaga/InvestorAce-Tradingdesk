@@ -45,7 +45,7 @@ const strategy = key => strategyNames[key] || present(key);
 const navItems = [
   ['overview','Übersicht'],['panic-paper',DeskPanic.label()],['market','Markt & Intraday'],['active','Aktives Trading'],['paper','Paper-Trading'],['paper-round2',DeskRoundTwo.label()],
   ['long-short','Long / Short · Paper'],
-  ['scanner','Scanner-Universum'],['evidence','Modellvergleich'],['score','Scorecard & Regime'],['journal','Journal & Reviews'],
+  ['low-radar',DeskRadar.label()],['scanner','Scanner-Universum'],['evidence','Modellvergleich'],['score','Scorecard & Regime'],['journal','Journal & Reviews'],
 ];
 const filters = [['all','Alle'],['open','Offene Trades'],['closed','Abgeschlossene'],['review','Review erforderlich'],['error','Datenfehler'],['conflict','Build-Konflikte']];
 const stages = [['backtest','Backtest'],['frozen','Frozen-OOS'],['paper','Paper-Trading'],['paper-round2',DeskRoundTwo.label()],['live','Live-Beobachtung']];
@@ -411,6 +411,8 @@ function paint(focus=false) {
   }
   if (state.page==='panic-paper') {
     DeskPanic.mount(main,location.hash.split('/')[1]);
+  } else if (state.page==='low-radar') {
+    DeskRadar.mount(main);
   } else if (state.page==='paper-round2') {
     DeskRoundTwo.mount(main);
   } else if (!data) {
