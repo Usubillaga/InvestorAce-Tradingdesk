@@ -1,0 +1,292 @@
+{
+  "schema": 1,
+  "round": "v18-2026-11-24",
+  "entry": "2026-11-24",
+  "end": "2026-12-08",
+  "mark": "2026-11-24",
+  "built": "2026-11-25T18:19:07.866754+00:00",
+  "fx": 0.890631,
+  "accounts": {
+    "score": {
+      "capital": 26300.45,
+      "budget": 26300.45,
+      "invested": 26289.512535075377,
+      "cash": 10.937464924623782,
+      "positions": [
+        {
+          "symbol": "ADBE",
+          "shares": 13,
+          "entry": 232.080002,
+          "currency": "USD",
+          "cost": 2687.069375396406,
+          "close": 232.080002
+        },
+        {
+          "symbol": "BKNG",
+          "shares": 19,
+          "entry": 146.639999,
+          "currency": "USD",
+          "cost": 2481.4404500380106,
+          "close": 146.639999
+        },
+        {
+          "symbol": "MU",
+          "shares": 5,
+          "entry": 629.789978,
+          "currency": "USD",
+          "cost": 2804.55238948059,
+          "close": 629.789978
+        },
+        {
+          "symbol": "GEN",
+          "shares": 90,
+          "entry": 29.950001,
+          "currency": "USD",
+          "cost": 2400.69594065679,
+          "close": 29.950001
+        },
+        {
+          "symbol": "INTU",
+          "shares": 9,
+          "entry": 279.420013,
+          "currency": "USD",
+          "cost": 2239.7411303838267,
+          "close": 279.420013
+        },
+        {
+          "symbol": "DLO",
+          "shares": 200,
+          "entry": 12.3,
+          "currency": "USD",
+          "cost": 2190.95226,
+          "close": 12.3
+        },
+        {
+          "symbol": "GDDY",
+          "shares": 22,
+          "entry": 102.279999,
+          "currency": "USD",
+          "cost": 2004.062231366118,
+          "close": 102.279999
+        },
+        {
+          "symbol": "CNX",
+          "shares": 53,
+          "entry": 34.360001,
+          "currency": "USD",
+          "cost": 1621.9103486834426,
+          "close": 34.360001
+        },
+        {
+          "symbol": "ZTS",
+          "shares": 19,
+          "entry": 81.470001,
+          "currency": "USD",
+          "cost": 1378.6344607519886,
+          "close": 81.470001
+        },
+        {
+          "symbol": "WKL.AS",
+          "shares": 14,
+          "entry": 86.5,
+          "currency": "EUR",
+          "cost": 1211.0,
+          "close": 86.5
+        },
+        {
+          "symbol": "MO",
+          "shares": 18,
+          "entry": 74.82,
+          "currency": "USD",
+          "cost": 1199.46620556,
+          "close": 74.82
+        },
+        {
+          "symbol": "TTD",
+          "shares": 96,
+          "entry": 14.07,
+          "currency": "USD",
+          "cost": 1202.99310432,
+          "close": 14.07
+        },
+        {
+          "symbol": "CRM",
+          "shares": 7,
+          "entry": 193.259995,
+          "currency": "USD",
+          "cost": 1204.863398247915,
+          "close": 193.259995
+        },
+        {
+          "symbol": "ENS",
+          "shares": 8,
+          "entry": 127.230003,
+          "currency": "USD",
+          "cost": 906.5198784151439,
+          "close": 127.230003
+        },
+        {
+          "symbol": "LULU",
+          "shares": 8,
+          "entry": 106.050003,
+          "currency": "USD",
+          "cost": 755.611361775144,
+          "close": 106.050003
+        }
+      ],
+      "days": [
+        {
+          "day": "2026-11-24",
+          "nav": 26300.45,
+          "missing": []
+        }
+      ],
+      "volume": 15312.211059004703,
+      "orders": 22,
+      "drawdown": 0.0,
+      "peak_day": "2026-11-24",
+      "trough_day": "2026-11-24",
+      "final_nav": null,
+      "net_nav": null,
+      "settlement": null
+    },
+    "rules": {
+      "capital": 26300.45,
+      "budget": 20959.26,
+      "invested": 21155.18706340421,
+      "cash": 5145.262936595791,
+      "positions": [
+        {
+          "symbol": "BKNG",
+          "shares": 13,
+          "entry": 146.639999,
+          "currency": "USD",
+          "cost": 1697.8276763417969,
+          "close": 146.639999
+        },
+        {
+          "symbol": "MO",
+          "shares": 23,
+          "entry": 74.82,
+          "currency": "USD",
+          "cost": 1532.65126266,
+          "close": 74.82
+        },
+        {
+          "symbol": "CNX",
+          "shares": 64,
+          "entry": 34.360001,
+          "currency": "USD",
+          "cost": 1958.5332512403836,
+          "close": 34.360001
+        },
+        {
+          "symbol": "ZTS",
+          "shares": 20,
+          "entry": 81.470001,
+          "currency": "USD",
+          "cost": 1451.1941692126197,
+          "close": 81.470001
+        },
+        {
+          "symbol": "WKL.AS",
+          "shares": 15,
+          "entry": 86.5,
+          "currency": "EUR",
+          "cost": 1297.5,
+          "close": 86.5
+        },
+        {
+          "symbol": "GDDY",
+          "shares": 18,
+          "entry": 102.279999,
+          "currency": "USD",
+          "cost": 1639.687280208642,
+          "close": 102.279999
+        },
+        {
+          "symbol": "GEN",
+          "shares": 81,
+          "entry": 29.950001,
+          "currency": "USD",
+          "cost": 2160.6263465911106,
+          "close": 29.950001
+        },
+        {
+          "symbol": "ADBE",
+          "shares": 11,
+          "entry": 232.080002,
+          "currency": "USD",
+          "cost": 2273.6740868738816,
+          "close": 232.080002
+        },
+        {
+          "symbol": "ENS",
+          "shares": 13,
+          "entry": 127.230003,
+          "currency": "USD",
+          "cost": 1473.0948024246088,
+          "close": 127.230003
+        },
+        {
+          "symbol": "MU",
+          "shares": 2,
+          "entry": 629.789978,
+          "currency": "USD",
+          "cost": 1121.820955792236,
+          "close": 629.789978
+        },
+        {
+          "symbol": "LULU",
+          "shares": 6,
+          "entry": 106.050003,
+          "currency": "USD",
+          "cost": 566.708521331358,
+          "close": 106.050003
+        },
+        {
+          "symbol": "TTD",
+          "shares": 76,
+          "entry": 14.07,
+          "currency": "USD",
+          "cost": 952.3695409199998,
+          "close": 14.07
+        },
+        {
+          "symbol": "CRM",
+          "shares": 6,
+          "entry": 193.259995,
+          "currency": "USD",
+          "cost": 1032.74005564107,
+          "close": 193.259995
+        },
+        {
+          "symbol": "OXY",
+          "shares": 42,
+          "entry": 53.380001,
+          "currency": "USD",
+          "cost": 1996.7591141665018,
+          "close": 53.380001
+        }
+      ],
+      "days": [
+        {
+          "day": "2026-11-24",
+          "nav": 26300.45,
+          "missing": []
+        }
+      ],
+      "volume": 8014.200656743826,
+      "orders": 9,
+      "drawdown": 0.0,
+      "peak_day": "2026-11-24",
+      "trough_day": "2026-11-24",
+      "final_nav": null,
+      "net_nav": null,
+      "settlement": null
+    }
+  },
+  "benchmark": {
+    "2026-11-24": 7201.089844
+  }
+}

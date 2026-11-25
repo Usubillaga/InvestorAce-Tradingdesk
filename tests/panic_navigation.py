@@ -34,6 +34,13 @@ frame.onload=async()=>{
     await until(()=>!d.querySelector('#main .desk-panic'));
     w.history.back();
     await until(()=>d.querySelector('#panic-paper-original')?.open && item().getAttribute('aria-current')==='page');
+    const round=d.querySelector('#nav a[href="#paper-round2"]');
+    round.click();
+    await until(()=>round.getAttribute('aria-current')==='page' && d.querySelector('#main .r2 table'));
+    if(!d.querySelector('#main .r2').textContent.includes('Ronda de papel 2'))throw Error('Missing Spanish comparison');
+    if(d.querySelectorAll('#main .r2-allocation').length!==2)throw Error('Missing opening accounts');
+    d.querySelector('#nav a[href="#overview"]').click();
+    await until(()=>!d.querySelector('#main .r2'));
     result.textContent='PASS';
   }catch(e){result.textContent=String(e)}
 };

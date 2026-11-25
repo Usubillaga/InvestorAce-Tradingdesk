@@ -43,12 +43,12 @@ const panelHead = (title,sub='',action='') => `<div class="panel-head"><div><h2>
 const strategyNames = {timing:'Opportunity + Timing', opportunity:'Opportunity', fundamental:'Fundamentals', 'v1.5':'Exit-Experiment v1.5', 'v1.6':'Exit-Experiment v1.6'};
 const strategy = key => strategyNames[key] || present(key);
 const navItems = [
-  ['overview','Übersicht'],['panic-paper',DeskPanic.label()],['market','Markt & Intraday'],['active','Aktives Trading'],['paper','Paper-Trading'],
+  ['overview','Übersicht'],['panic-paper',DeskPanic.label()],['market','Markt & Intraday'],['active','Aktives Trading'],['paper','Paper-Trading'],['paper-round2',DeskRoundTwo.label()],
   ['long-short','Long / Short · Paper'],
   ['scanner','Scanner-Universum'],['evidence','Modellvergleich'],['score','Scorecard & Regime'],['journal','Journal & Reviews'],
 ];
 const filters = [['all','Alle'],['open','Offene Trades'],['closed','Abgeschlossene'],['review','Review erforderlich'],['error','Datenfehler'],['conflict','Build-Konflikte']];
-const stages = [['backtest','Backtest'],['frozen','Frozen-OOS'],['paper','Paper-Trading'],['live','Live-Beobachtung']];
+const stages = [['backtest','Backtest'],['frozen','Frozen-OOS'],['paper','Paper-Trading'],['paper-round2',DeskRoundTwo.label()],['live','Live-Beobachtung']];
 const statusNames = {Open:'Offen', Pending:'Ausstehend', Blocked:'Einstieg gesperrt', Filled:'Ausgeführt', Rejected:'Abgelehnt', Expired:'Abgelaufen', Cancelled:'Storniert', Planned:'Geplant', Closed:'Abgeschlossen'};
 const defaults = {page:'overview', evidence:'backtest', account:'all', window:0, mode:'trades', journalSource:'paper', filter:{}, queries:{}, regime:'REFLATION'};
 let data;
@@ -399,6 +399,8 @@ function paint(focus=false) {
   }
   if (state.page==='panic-paper') {
     DeskPanic.mount(main,location.hash.split('/')[1]);
+  } else if (state.page==='paper-round2') {
+    DeskRoundTwo.mount(main);
   } else if (!data) {
     main.innerHTML=snapshotFailed ? notice('Der archivierte Datensatz konnte nicht geladen werden. <a href="https://usubillaga.github.io/InvestorAce/">InvestorAce-Hauptreport öffnen</a>.') :
       '<div class="loading" role="status">InvestorAce-Daten werden geladen …</div>';
