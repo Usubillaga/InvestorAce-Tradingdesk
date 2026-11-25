@@ -325,7 +325,7 @@ function frozenPage() {
 function scorePage() {
   const regimes = ['GOLDILOCKS','REFLATION','INFLATION','STAGFLATION','RECESSION'];
   const macro = data.macro;
-  return header('Scorecard & Regime-Fit','Archivierte InvestorAce-Scores und Regimewerte mit ihrem jeweiligen Prüfstatus.',link(data.pages.home,'Original-Scoreboard'),'Research')
+  return header('Scorecard & Regime-Fit',`Archivierter Stand vom ${time(data.captured)}.`,link(data.pages.home,'Aktuelles InvestorAce-Scoreboard öffnen','button'),'Research')
   + `<div class="stack"><article class="panel">${panelHead('Makro-Snapshot','Research · archivierte Modellbeobachtung')}
     <div class="details">${kv([['Regime',macro?.regime],['Fensterende',day(macro?.regime_input?.end)],['Fenster',finite(macro?.regime_input?.sessions)?`${n(macro.regime_input.sessions)} Sitzungen`:'Offen'],['Datenbasis',macro?.source],['Nachweis','Berichts-Build geprüft']])}
     <p>Fundamental-Score, Opportunity-Signal, Regime-Fit und Analystenstatus werden getrennt angezeigt. Jede Zeile beschreibt den Snapshot-Zeitpunkt.</p></div></article>
@@ -342,9 +342,10 @@ function signalState(opp, now=Date.now()) {
 function scoreRows() {
   const q = (state.queries.score || '').trim().toLowerCase();
   const records = data.scorecard.filter(r=>`${r.ticker} ${instrumentName(r)} ${r.sector}`.toLowerCase().includes(q));
-  return cells(['Ticker','Unternehmen','Fundamental','Opportunity','Signal im Archiv','Regime-Fit','Analystenstatus'],records.map(r=>[
+  if (!records.length && q) return empty('Kein Treffer im archivierten Scoreboard', 'Stand vom '+time(data.captured))+link(data.pages.home,'Vollständiges InvestorAce-Scoreboard öffnen','button');
+  return cells(['Ticker','Unternehmen','Fundamental (Altmodell)','Opportunity','Signal im Archiv','Regime-Fit','Analystenstatus'],records.map(r=>[
     `<button class="table-link ticker" data-action="score" data-key="${esc(r.ticker)}">${esc(r.ticker)}</button>`,esc(instrumentName(r)),
-    num(r.score,'n','Archivierter Fundamental-Score · Modell'),num(r.opportunity.score,'n','Archivierter Opportunity-Score · Modell'),
+    num(r.score,'n','Archivierter Fundamental-Score · Altmodell'),num(r.opportunity.score,'n','Archivierter Opportunity-Score · Modell'),
     `${r.cashOffer ? 'Barangebot · '+n(r.cashOffer.spread_pct)+' % Bruttospread' : esc(present(r.opportunity.label))}<div class="fine">${esc(signalState(r.opportunity))}</div>`,num(r.regime[state.regime],'n','Archivierter Regime-Fit · Modell'),
     badge(r.review==='REVIEW_REQUIRED'?'Review erforderlich':present(r.review),r.review==='REVIEW_REQUIRED'?'warn':'soft')]));
 }
@@ -483,7 +484,7 @@ function showScore(ticker) {
   const r = data.scorecard.find(x=>x.ticker===ticker);
   if (!r) return;
   show(`${r.ticker} · ${instrumentName(r)}`,`${badge('Research · Berichts-Build geprüft','info')}
-  ${kv([['Fundamental-Score',n(r.score)],['Opportunity-Score',n(r.opportunity.score)],['Signal im Archiv',r.opportunity.label],
+  ${kv([['Fundamental-Score (Altmodell)',n(r.score)],['Opportunity-Score',n(r.opportunity.score)],['Signal im Archiv',r.opportunity.label],
     ['Signalgültigkeit',signalState(r.opportunity)],['Unternehmensprofil',r.opportunity.profile?.tags?.join(', ')],
     ['Modell',r.opportunity.version || r.opportunity.schema],['Analystenstatus',r.review],['Kurs',finite(r.price)?`${n(r.price)} ${r.currency}`:'Offen'],
     ['Kursstand',time(r.inputs.quote_observed_at)],['Normalisierung',r.inputs.normalization_status],['Cashflow-Basis',r.inputs.cash_flow_basis]])}
