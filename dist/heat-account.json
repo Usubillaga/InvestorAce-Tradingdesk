@@ -4,7 +4,7 @@
   "initial": 10000,
   "cash": 0.0,
   "benchmark_cash": 0.0,
-  "as_of": "2026-11-24",
+  "as_of": "2026-11-25",
   "monitor": {
     "day": "2026-11-24",
     "intraday": false,
@@ -39,10 +39,10 @@
       "fund": "SPY",
       "symbol": "AAPL",
       "name": "APPLE INC",
-      "weight_pct": 8.377218,
-      "as_of": "2026-11-20",
+      "weight_pct": 8.151812,
+      "as_of": "2026-11-23",
       "source": "spdr_cdn",
-      "url": "https://github.com/kovagent/indexkit/blob/acf2ed32397cfa939bf7a71402070fbbb04c760a/data/sp500/sp500-2026-11.parquet"
+      "url": "https://github.com/kovagent/indexkit/blob/e91b33a38255bbda1f7304ca3cfec71357a48b41/data/sp500/sp500-2026-11.parquet"
     },
     {
       "fund": "QQQ",
@@ -51,16 +51,16 @@
       "weight_pct": 9.205365,
       "as_of": "2026-11-23",
       "source": "invesco_cdn",
-      "url": "https://github.com/kovagent/indexkit/blob/acf2ed32397cfa939bf7a71402070fbbb04c760a/data/ndx/ndx-2026-11.parquet"
+      "url": "https://github.com/kovagent/indexkit/blob/e91b33a38255bbda1f7304ca3cfec71357a48b41/data/ndx/ndx-2026-11.parquet"
     },
     {
       "fund": "DIA",
       "symbol": "GS",
       "name": "GOLDMAN SACHS GROUP INC",
-      "weight_pct": 9.754781,
-      "as_of": "2026-11-20",
+      "weight_pct": 9.864597,
+      "as_of": "2026-11-23",
       "source": "spdr_cdn",
-      "url": "https://github.com/kovagent/indexkit/blob/acf2ed32397cfa939bf7a71402070fbbb04c760a/data/dji/dji-2026-11.parquet"
+      "url": "https://github.com/kovagent/indexkit/blob/e91b33a38255bbda1f7304ca3cfec71357a48b41/data/dji/dji-2026-11.parquet"
     }
   ],
   "pending": null,
@@ -109,7 +109,7 @@
         "symbol": "AAPL",
         "entry_price": 349.0799865722656,
         "entry_units": 9.53937051133111,
-        "value": 3377.6049868154423
+        "value": 3392.0092383269825
       },
       {
         "side": "etf",
@@ -117,7 +117,7 @@
         "symbol": "SPY",
         "entry_price": 722.2899780273438,
         "entry_units": 4.610341319005905,
-        "value": 3313.821268343658
+        "value": 3304.231679610113
       },
       {
         "side": "leader",
@@ -125,7 +125,7 @@
         "symbol": "AAPL",
         "entry_price": 349.0799865722656,
         "entry_units": 9.53937051133111,
-        "value": 3377.6049868154423
+        "value": 3392.0092383269825
       },
       {
         "side": "etf",
@@ -133,7 +133,7 @@
         "symbol": "QQQ",
         "entry_price": 651.030029296875,
         "entry_units": 5.114976545090859,
-        "value": 3263.8664085451205
+        "value": 3242.537043766242
       },
       {
         "side": "leader",
@@ -141,7 +141,7 @@
         "symbol": "GS",
         "entry_price": 823.6199951171875,
         "entry_units": 4.043130751736456,
-        "value": 3258.8443274820156
+        "value": 3238.6691445145498
       },
       {
         "side": "etf",
@@ -149,15 +149,17 @@
         "symbol": "DIA",
         "entry_price": 495.79998779296875,
         "entry_units": 6.716424792236664,
-        "value": 3356.466060082265
+        "value": 3366.7421818156267
       }
     ]
   },
   "history": [],
   "skipped": [],
-  "equity": 10014.054301112901,
-  "benchmark": 9934.153736971044,
-  "warnings": [],
+  "equity": 10022.687621168516,
+  "benchmark": 9913.510905191983,
+  "warnings": [
+    "No verified after-close monitor reading available for 2026-11-25"
+  ],
   "intraday_monitor": {
     "day": "2026-11-24",
     "intraday": true,
