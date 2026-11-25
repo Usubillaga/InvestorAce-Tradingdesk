@@ -401,7 +401,7 @@ function paint(focus=false) {
   } else if (!data) {
     main.innerHTML=snapshotFailed ? notice('Der archivierte Datensatz konnte nicht geladen werden. <a href="https://usubillaga.github.io/InvestorAce/">InvestorAce-Hauptreport öffnen</a>.') :
       '<div class="loading" role="status">InvestorAce-Daten werden geladen …</div>';
-  } else main.innerHTML = ({overview,market:()=>header('Markt & Intraday','Indexkurse, Marktbreite und regelbasierte Paper-Ausführungen.')+marketPanel()+sessionBook(),scanner:scannerPage,active:live,paper:paperPage,'long-short':()=>header('Long / Short','Automatisches Paper-Konto von InvestorAce.')+competitionPanel()+codexPaperPanel(),evidence:evidencePage,score:scorePage,journal})[state.page]();
+  } else main.innerHTML = ({overview,market:()=>header('Markt & Intraday','Indexkurse, Marktbreite und regelbasierte Paper-Ausführungen.')+marketPanel()+sessionBook(),scanner:scannerPage,active:live,paper:paperPage,'long-short':()=>header('Long / Short','Automatisches Paper-Konto von InvestorAce.')+codexPaperPanel()+competitionPanel(),evidence:evidencePage,score:scorePage,journal})[state.page]();
   if (focus) main.focus({preventScroll:true});
 }
 function show(title, content) {

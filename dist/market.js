@@ -445,6 +445,34 @@ function competitionPanel() {
       : '<p>Keine aufgezeichneten Orders.</p>')).join('') + '</article>';
 }
 
+const returnLabels = {
+  de:{net:'Netto', gross:'Brutto', side:'Richtung', mark:'Bewertet am', close:'Letzter Schluss', opened:'Eröffnet', entry:'Einstieg', value:'Positionswert', old:'Älterer Schlusskurs', account:'Kontorendite netto',
+      note:'Offener Gewinn oder Verlust in Prozent des Einstiegskapitals. Netto enthält die Einstiegsgebühr und bei Shorts die bis zum Bewertungstag angefallene Leihgebühr.'},
+  es:{net:'Neto', gross:'Bruto', side:'Lado', mark:'Valoración', close:'Último cierre', opened:'Apertura', entry:'Entrada', value:'Nominal valorado', old:'Cierre anterior', account:'Rentabilidad neta de la cuenta',
+      note:'Ganancia o pérdida abierta sobre el importe inicial de cada posición. El neto incluye la comisión de entrada y, en los cortos, el préstamo acumulado hasta la fecha de valoración.'},
+  en:{net:'Net', gross:'Gross', side:'Side', mark:'Valued on', close:'Last close', opened:'Opened', entry:'Entry', value:'Marked notional', old:'Earlier close', account:'Net account return',
+      note:'Open profit or loss as a percentage of the opening notional. Net includes the entry fee and, for shorts, borrowing costs accrued through the valuation date.'}
+};
+function openReturnTable(report, lang) {
+  const t=returnLabels[lang];
+  const percent=new Intl.NumberFormat(lang,{style:'percent',minimumFractionDigits:2,maximumFractionDigits:2,signDisplay:'exceptZero'});
+  const money=new Intl.NumberFormat(lang,{style:'currency',currency:'USD'});
+  const dollars=value=>finite(value)?esc(money.format(value)):'—';
+  const percentCell=value=>finite(value)?badge(percent.format(value/100),value>0?'good':value<0?'bad':'soft'):'—';
+  const base=report.parameters?.position_usd;
+  const rows=Object.entries(report.paper.positions).map(([ticker,pos])=>{
+    // Older reports already contain the marked notional, but do not attribute borrow fees by position.
+    const marked=finite(pos.marked_notional) && pos.marked_notional>=0 && pos.marked_on && pos.marked_on>=pos.opened_on;
+    const gross=marked && finite(base) && base>0 ? (pos.side==='SHORT'?-1:1)*100*(pos.marked_notional-base)/base : null;
+    const old=pos.marked_on && report.paper.last && pos.marked_on<report.paper.last;
+    const date=pos.marked_on ? esc(pos.marked_on)+(old?' '+badge(t.old,'warn'):'') : '—';
+    return [esc(ticker),esc(pos.side),percentCell(marked?pos.net_return_pct:null),percentCell(gross),date,
+      dollars(pos.mark_close),esc(pos.opened_on),dollars(pos.entry_close),dollars(pos.marked_notional)];
+  });
+  return cells(['Ticker',t.side,t.net+' %',t.gross+' %',t.mark,t.close,t.opened,t.entry,t.value],rows)+
+    '<div class="details"><p>'+t.note+'</p></div>';
+}
+
 function codexPaperPanel() {
   const report = codexPaper;
   const action = link('https://usubillaga.github.io/InvestorAce/trading-compare.html', 'Claude vs. Codex') + link(codexJournal, 'InvestorAce-Journal');
@@ -454,7 +482,8 @@ function codexPaperPanel() {
   const positions = Object.entries(paper.positions);
   const orders = [...paper.orders.slice(-8), ...paper.pending].reverse();
   const count = side => positions.filter(([, pos]) => pos.side === side).length;
-  const usd = value => new Intl.NumberFormat('de-DE', {style:'currency', currency:'USD'}).format(value);
+  const wanted=new URLSearchParams(location.search).get('lang') || navigator.language.slice(0,2);
+  const lang=Object.hasOwn(returnLabels,wanted)?wanted:'de';
   const test = backtest.forward_rules;
   const build = 'https://github.com/Usubillaga/InvestorAce/tree/main/history/_builds/' + report.archive_build;
   return `<article class="panel section-gap">${panelHead('Automatische Longs & Shorts', `Paper-Konto · Stand ${time(report.as_of)}`, action)}
@@ -462,10 +491,9 @@ function codexPaperPanel() {
       ${stat('Offene Longs',n(count('LONG')),'Simulation','soft','Fundamental + technisch','active')}
       ${stat('Offene Shorts',n(count('SHORT')),'Simulation','soft','Rein technisch','active')}
       ${stat('Ausstehende Orders',n(paper.pending.length),'Simulation','soft','Orderjournal','journal')}
+      ${stat(returnLabels[lang].account,finite(paper.return_pct)?new Intl.NumberFormat(lang,{style:'percent',minimumFractionDigits:2,maximumFractionDigits:2,signDisplay:'exceptZero'}).format(paper.return_pct/100):'—','USD','soft',day(paper.last),'paper')}
     </div>
-    ${positions.length ? cells(['Ticker','Richtung','Eröffnet','Einstieg','Letzte Bewertung','Positionswert'],positions.map(([ticker,pos])=>
-        [esc(ticker),esc(pos.side),esc(day(pos.opened_on)),finite(pos.entry_close)?esc(usd(pos.entry_close)):'Offen',
-         esc(day(pos.marked_on)),finite(pos.marked_notional)?esc(usd(pos.marked_notional)):'Offen']))
+    ${positions.length ? openReturnTable(report,lang)
       : empty('Keine aktiven Paper-Positionen',paper.sessions ? 'Für den verifizierten Stand ist das Konto ohne offene Positionen.'
         : 'Das Konto wartet auf seine erste zulässige Handelssitzung.')}
     ${orders.length ? cells(['Order','Richtung','Ticker','Ausführung','Status'],orders.map(o=>

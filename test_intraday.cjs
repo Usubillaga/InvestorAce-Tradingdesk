@@ -40,3 +40,21 @@ assert.ok(isMarketTrend(trend));
 assert.ok(!isMarketTrend({...trend, breadth:[null, breadth[1]]}));
 assert.ok(!isMarketTrend({...trend, breadth:[{pct50:105, pct200:10}, breadth[1]]}));
 assert.ok(!isMarketTrend({...trend, leaders:[{ticker:'X', name:42}]}));
+
+const returnTable = vm.runInContext('openReturnTable',ctx);
+Object.assign(ctx, {esc:String,badge:text=>text,cells:(headers,rows)=>JSON.stringify({headers,rows})});
+const opened_on='2026-11-23', marked_on='2026-11-24';
+const long={side:'LONG',opened_on,marked_on,entry_close:100,mark_close:95,marked_notional:475,net_return_pct:-5.1};
+const short={...long,side:'SHORT',net_return_pct:4.89};
+const tableFor=(positions,base=500,lang='en')=>returnTable({parameters:{position_usd:base},paper:{positions,last:marked_on}},lang);
+const columns=output=>JSON.parse(output.split('<div')[0]);
+assert.deepEqual(columns(tableFor({L:long,S:short})).rows.map(row=>row.slice(0,5)),[
+  ['L','LONG','-5.10%','-5.00%',marked_on], ['S','SHORT','+4.89%','+5.00%',marked_on]
+]);
+assert.match(tableFor({S:{...short,marked_notional:525,net_return_pct:-5.11}}),/-5.11%.*-5.00%/);
+assert.match(tableFor({L:{...long,marked_notional:500,net_return_pct:-.1}}),/-0.10%.*0.00%/);
+assert.match(tableFor({L:{...long,marked_on:opened_on}}),/Earlier close/);
+assert.deepEqual(columns(tableFor({L:{...long,marked_notional:null}})).rows[0].slice(2,4),['—','—']);
+assert.deepEqual(columns(tableFor({S:{...short,net_return_pct:undefined}})).rows[0].slice(2,4),['—','+5.00%']);
+assert.deepEqual(columns(tableFor({},500,'es')).headers.slice(2,4),['Neto %','Bruto %']);
+assert.deepEqual(columns(tableFor({},500,'de')).headers.slice(2,4),['Netto %','Brutto %']);
