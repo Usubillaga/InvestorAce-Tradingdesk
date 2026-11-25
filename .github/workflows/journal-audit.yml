@@ -1,0 +1,32 @@
+name: Tradingdesk journal audit
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/journal-audit.yml', 'journal_audit.py']
+  schedule:
+    - cron: '17 8 * * *'
+permissions:
+  contents: read
+  actions: read
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          repository: Usubillaga/InvestorAce
+          path: upstream
+          persist-credentials: false
+          sparse-checkout: market-scan
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install 'exchange-calendars==4.11.3' 'pandas==2.3.3'
+      - run: python journal_audit.py . upstream
+        env:
+          GH_TOKEN: ${{ github.token }}
