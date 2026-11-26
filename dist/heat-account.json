@@ -6,33 +6,33 @@
   "benchmark_cash": 0.0,
   "as_of": "2026-11-25",
   "monitor": {
-    "day": "2026-11-24",
+    "day": "2026-11-25",
     "intraday": false,
-    "heat": 29.6,
-    "as_of": "2026-11-24T21:56:45.111164+00:00",
+    "heat": 28.0,
+    "as_of": "2026-11-25T23:25:12.857935+00:00",
     "components": {
       "sp500_ma200": {
-        "date": "2026-11-24",
-        "score": 39.8,
-        "value": -2.04
+        "date": "2026-11-25",
+        "score": 38.5,
+        "value": -2.31
       },
       "sp500_ma50": {
-        "date": "2026-11-24",
+        "date": "2026-11-25",
         "score": 0.0,
-        "value": -5.37
+        "value": -5.52
       },
       "universe_above_ma200": {
-        "count": 126,
-        "score": 33.3,
-        "value": 33.3
+        "count": 130,
+        "score": 34.6,
+        "value": 34.6
       },
       "vix": {
-        "date": "2026-11-24",
-        "score": 45.5,
-        "value": 26.36
+        "date": "2026-11-25",
+        "score": 39.0,
+        "value": 28.29
       }
     },
-    "url": "https://github.com/Usubillaga/InvestorAce/blob/main/history/_builds/20261124T215658367051-72d377b9d5854254ad55d26dc966acbf/observation.json"
+    "url": "https://github.com/Usubillaga/InvestorAce/blob/main/history/_builds/20261125T232524908249-671e11b3ed0f4f0f96f5ce7d43bcb675/observation.json"
   },
   "leaders": [
     {
@@ -157,9 +157,7 @@
   "skipped": [],
   "equity": 10022.687621168516,
   "benchmark": 9913.510905191983,
-  "warnings": [
-    "No verified after-close monitor reading available for 2026-11-25"
-  ],
+  "warnings": [],
   "intraday_monitor": {
     "day": "2026-11-24",
     "intraday": true,
