@@ -1,11 +1,16 @@
 name: Intraday market pages
 on:
   workflow_dispatch:
+  workflow_run:
+    workflows: ['Tradingdesk journal audit']
+    branches: [main]
+    types: [completed]
   push:
     branches: [main]
     paths:
       - '.github/workflows/market.yml'
       - 'dist/**'
+      - 'test_market_history.py'
       - 'session_feed.py'
       - 'correction_study/**'
       - 'snapshot.py'
@@ -22,6 +27,7 @@ concurrency:
   cancel-in-progress: false
 jobs:
   quotes:
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.event == 'schedule'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
@@ -33,7 +39,7 @@ jobs:
       - name: Check dashboard and paper execution before publishing
         if: github.event_name != 'schedule'
         run: |
-          python3 -m unittest correction_study.test_model
+          python3 -m unittest correction_study.test_model test_market_history
           node --check dist/app.js
           node --check dist/market.js
           node test_intraday.cjs
@@ -46,7 +52,7 @@ jobs:
           test "${#revision}" = 40
           echo "revision=$revision" >> "$GITHUB_OUTPUT"
           bundled=$(python3 -c "import json; print(json.load(open('dist/snapshot.json'))['commit'])")
-          if [ "$revision" != "$bundled" ]; then echo "changed=true" >> "$GITHUB_OUTPUT"; fi
+          if [ "$revision" != "$bundled" ] || ! python3 -c "import json; m=json.load(open('dist/snapshot.json'))['market']; assert all(row['date'] >= m['history'][row['symbol']][-1][0] for row in m['moves'])"; then echo "changed=true" >> "$GITHUB_OUTPUT"; fi
       - uses: actions/cache@v4
         id: saved
         if: steps.archive.outputs.changed == 'true'
@@ -96,52 +102,39 @@ jobs:
       - uses: actions/download-artifact@v4
         with:
           name: github-pages
-      - name: Read the scorecard from the tested Pages artifact
-        run: tar -xOf artifact.tar ./dist/snapshot.json > "$RUNNER_TEMP/snapshot.json"
-      - name: Keep the verified scorecard available to branch-based Pages deployments
-        id: save
-        uses: actions/github-script@v8
+      - uses: actions/checkout@v4
         with:
-          script: |
-            const fs = require('node:fs');
-            const path = 'dist/snapshot.json';
-            const branch = 'main';
-            const {owner, repo} = context.repo;
-            const bytes = fs.readFileSync(process.env.RUNNER_TEMP + '/snapshot.json');
-            const next = JSON.parse(bytes);
-            if (!next.builds?.[next.current] || !next.scorecard?.length || !next.market ||
-                next.issues.some(issue => issue.section === 'Build')) {
-              throw new Error('The Pages artifact has no complete verified build chain.');
-            }
-            for (let attempt = 1; ; attempt++) {
-              const {data: file} = await github.rest.repos.getContent({owner, repo, path, ref: branch});
-              // The Contents API stops including the file body above 1 MB.
-              const blob = file.encoding === 'base64' ? file :
-                (await github.rest.git.getBlob({owner, repo, file_sha: file.sha})).data;
-              const saved = JSON.parse(Buffer.from(blob.content, 'base64'));
-              if (next.current === saved.current) {
-                core.info('The published build is already on main.');
-                break;
-              }
-              if (saved.builds?.[next.current]) {
-                core.notice('Main already has a newer build. Skipping this deployment.');
-                return;
-              }
-              if (!next.builds[saved.current] || !(Date.parse(next.captured) > Date.parse(saved.captured))) {
-                throw new Error('The artifact does not advance the archived build on main.');
-              }
-              try {
-                await github.rest.repos.createOrUpdateFileContents({
-                  owner, repo, path, branch, sha: file.sha, content: bytes.toString('base64'),
-                  message: 'Refresh verified InvestorAce scorecard ' + next.current
-                });
-                break;
-              } catch (error) {
-                if (error.status !== 409 || attempt >= 3) throw error;
-                core.info('Concurrent update on main. Rechecking the archived build.');
-              }
-            }
-            core.setOutput('deploy', 'true');
+          path: branch
+          ref: ${{ github.sha }}
+      - name: Persist the tested market files together
+        id: save
+        working-directory: branch
+        env:
+          GH_SOURCE_SHA: ${{ github.sha }}
+        run: |
+          tar -xf ../artifact.tar ./dist/snapshot.json ./dist/quotes.json ./dist/positioning.json
+          python3 - <<'PYTHON'
+          import json, subprocess
+          from pathlib import Path
+          def read(name):
+              return json.loads(Path('dist', name + '.json').read_bytes())
+          snapshot, feed = read('snapshot'), read('quotes')
+          saved = json.loads(subprocess.check_output(['git', 'show', 'HEAD:dist/snapshot.json']))
+          assert snapshot['current'] in snapshot['builds'] and snapshot['scorecard'] and snapshot['market']['moves']
+          assert not any(issue['section'] == 'Build' for issue in snapshot['issues'])
+          assert saved['current'] == snapshot['current'] or (saved['current'] in snapshot['builds'] and snapshot['captured'] > saved['captured'])
+          assert feed['snapshot'] == snapshot['current'] and feed['quotes']
+          PYTHON
+          if [ "$(git ls-remote --exit-code origin refs/heads/main | cut -f1)" != "$GH_SOURCE_SHA" ]; then
+            echo "::notice::Main advanced while sampling. Leaving the newer site intact."
+            exit 0
+          fi
+          git add -- dist/snapshot.json dist/quotes.json dist/positioning.json
+          if ! git diff --cached --quiet; then
+            git -c user.name='github-actions[bot]' -c user.email='41898282+github-actions[bot]@users.noreply.github.com' commit -m 'Refresh verified market snapshot and session quotes'
+            git push origin HEAD:refs/heads/main
+          fi
+          echo "deploy=true" >> "$GITHUB_OUTPUT"
   deploy:
     needs: persist
     if: needs.persist.outputs.deploy == 'true'

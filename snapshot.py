@@ -275,6 +275,23 @@ def backtest(path):
     return dict(generated=b['generated_at'], schema=b['schema'], windows=windows)
 
 
+def market_history(builds):
+    """Use the newest available session per symbol, retaining same-day revisions."""
+    history = {}
+    latest = {}
+    for build in reversed(list(builds.values())):
+        pulse = (build['record']['_evidence'].get('macro') or {}).get('pulse') or {}
+        for move in pulse.get('moves') or []:
+            symbol, day = move['symbol'], move['date']
+            history.setdefault(symbol, {})[day] = move['close']
+            if symbol not in latest or day >= latest[symbol]['date']:
+                latest[symbol] = move
+    # Preserve the current archive's universe and ordering.
+    return dict(moves=[latest[row['symbol']] for row in pulse.get('moves') or []],
+                components=pulse.get('components') or {},
+                history={symbol: sorted(rows.items())[-90:] for symbol, rows in history.items()})
+
+
 def generate(root, rules=None):
     rules = rules or root
     sys.path.insert(0, str(rules))
@@ -309,15 +326,8 @@ def generate(root, rules=None):
     for run,b in builds.items():
         out['builds'][run] = dict(manifest=b['manifest'], captured=b['record']['_evidence']['captured_at'],
                                   url=f'{BASE}/tree/{rev}/history/_builds/{run}')
-    history = {}
-    for item in reversed(list(builds.values())):
-        pulse = ((item['record']['_evidence'].get('macro') or {}).get('pulse') or {})
-        for move in pulse.get('moves') or []:
-            history.setdefault(move['symbol'], {})[move['date']] = move['close']
     if builds:
-        pulse = record['_evidence']['macro'].get('pulse') or {}
-        out['market'] = dict(moves=pulse.get('moves') or [], components=pulse.get('components') or {},
-                             history={symbol: sorted(rows.items())[-90:] for symbol, rows in history.items()})
+        out['market'] = market_history(builds)
     try:
         engine = importlib.import_module('codex_trading')
         out['paper'], comparison_issue = paper(root/'history'/'codex_trading.json', builds, engine, rule_revision)
