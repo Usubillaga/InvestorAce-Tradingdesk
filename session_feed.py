@@ -155,10 +155,13 @@ def main():
     symbols = sorted(symbols)
     with ThreadPoolExecutor(max_workers=8) as pool:
         quotes = {s:q for s,q in zip(symbols,pool.map(fetch_quote,symbols)) if q}
+    missing = sorted(set(symbols) - quotes.keys())
+    if missing:
+        print('::warning::Missing quote responses: ' + ', '.join(missing))
     if not quotes:
         raise SystemExit('Quote feed unavailable')
     now = int(time.time())
-    result = dict(version=1, sampled=now, snapshot=snapshot['current'], quotes=quotes, scanner=scanner, watch=WATCHLIST)
+    result = dict(version=1, sampled=now, snapshot=snapshot['current'], quotes=quotes, missing=missing, scanner=scanner, watch=WATCHLIST)
     target.parent.mkdir(parents=True, exist_ok=True)
     tmp = target.with_suffix('.tmp')
     tmp.write_text(json.dumps(result, allow_nan=False, separators=(',', ':')))

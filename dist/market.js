@@ -67,6 +67,7 @@ function freshQuote(q) {
 function quoteState(q) {
   if(!q) return 'Archiv';
   const now=Date.now()/1000;
+  if(now-q.at>86400) return 'Kurs älter als 24 Stunden';
   if(now>=q.end || now<q.start) return 'Außerhalb der Sitzung';
   return freshQuote(q)?'Sitzung · zeitnah':'Verzögert / veraltet';
 }
