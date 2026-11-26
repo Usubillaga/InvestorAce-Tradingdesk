@@ -4,6 +4,10 @@ Static dashboard for the InvestorAce Trading Desk trial. It includes a pinned sn
 
 The browser stores manually recorded trades and reviews under the dashboard's origin. Exports contain local journal records and Build metadata. The JSON import accepts live records from a Desk export.
 
+## Company research
+
+- 2026-11-26 · [Alantra Partners · ACP settlement, segment results and capital allocation](research/alantra-2026-11-26.md) (ES / EN / DE)
+
 ## Run locally
 
 From the repository root, serve the checked-in dashboard over HTTP:
