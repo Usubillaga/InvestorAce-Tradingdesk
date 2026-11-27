@@ -19,6 +19,8 @@ on:
       - 'package_panic.cjs'
       - 'tests/panic_navigation.py'
       - 'index.html'
+      - 'round2_refresh.py'
+      - 'test_round2_refresh.py'
   schedule:
     - cron: '7,37 7-21 * * 1-5'
 permissions: {}
@@ -44,7 +46,8 @@ jobs:
           node --check dist/market.js
           node test_intraday.cjs
           node --test test_heat_paper.cjs
-          python3 -m py_compile snapshot.py session_feed.py
+          python3 -m py_compile snapshot.py session_feed.py round2_refresh.py
+          python3 -m unittest test_round2_refresh
       - name: Identify published InvestorAce data
         id: archive
         run: |
@@ -77,6 +80,8 @@ jobs:
           python3 -c "import json; s=json.load(open('dist/snapshot.json')); assert s['current'] in s['builds'] and s['scorecard'] and s.get('market')"
       - name: Fetch public market prices using the Python standard library
         run: python3 session_feed.py
+      - name: Refresh the round-two journal from the published InvestorAce report
+        run: python3 round2_refresh.py
       - name: Package static web assets
         run: |
           mkdir -p _site
@@ -112,7 +117,7 @@ jobs:
         env:
           GH_SOURCE_SHA: ${{ github.sha }}
         run: |
-          tar -xf ../artifact.tar ./dist/snapshot.json ./dist/quotes.json ./dist/positioning.json
+          tar -xf ../artifact.tar ./dist/snapshot.json ./dist/quotes.json ./dist/positioning.json ./dist/paper-round2.json
           python3 - <<'PYTHON'
           import json, subprocess
           from pathlib import Path
@@ -129,7 +134,7 @@ jobs:
             echo "::notice::Main advanced while sampling. Leaving the newer site intact."
             exit 0
           fi
-          git add -- dist/snapshot.json dist/quotes.json dist/positioning.json
+          git add -- dist/snapshot.json dist/quotes.json dist/positioning.json dist/paper-round2.json
           if ! git diff --cached --quiet; then
             git -c user.name='github-actions[bot]' -c user.email='41898282+github-actions[bot]@users.noreply.github.com' commit -m 'Refresh verified market snapshot and session quotes'
             git push origin HEAD:refs/heads/main
