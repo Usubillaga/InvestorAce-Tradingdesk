@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "started": "2026-11-24T16:38:54.985046+00:00",
-  "as_of": "2026-11-25",
+  "as_of": "2026-11-27",
   "books": {
     "5": {
       "size": 5,
@@ -33,12 +33,12 @@
   "selection": {
     "sources": {
       "SPY": {
-        "date": "2026-11-23",
-        "url": "https://github.com/kovagent/indexkit/blob/e91b33a38255bbda1f7304ca3cfec71357a48b41/data/sp500/sp500-2026-11.parquet"
+        "date": "2026-11-24",
+        "url": "https://github.com/kovagent/indexkit/blob/a70d95f5c06b02b3fb5b0daf5588a430f8d64c69/data/sp500/sp500-2026-11.parquet"
       },
       "QQQ": {
-        "date": "2026-11-23",
-        "url": "https://github.com/kovagent/indexkit/blob/e91b33a38255bbda1f7304ca3cfec71357a48b41/data/ndx/ndx-2026-11.parquet"
+        "date": "2026-11-26",
+        "url": "https://github.com/kovagent/indexkit/blob/a70d95f5c06b02b3fb5b0daf5588a430f8d64c69/data/ndx/ndx-2026-11.parquet"
       }
     },
     "candidates": [
@@ -49,22 +49,10 @@
           "AAPL"
         ],
         "weights": {
-          "SPY": 0.08151812,
-          "QQQ": 0.09205365
+          "SPY": 0.08309157,
+          "QQQ": 0.0918488
         },
-        "score": 0.08678588500000001
-      },
-      {
-        "symbol": "MSFT",
-        "name": "MICROSOFT CORP",
-        "classes": [
-          "MSFT"
-        ],
-        "weights": {
-          "SPY": 0.05851686,
-          "QQQ": 0.06638065
-        },
-        "score": 0.062448754999999995
+        "score": 0.087470185
       },
       {
         "symbol": "NVDA",
@@ -73,10 +61,22 @@
           "NVDA"
         ],
         "weights": {
-          "SPY": 0.06391142999999999,
-          "QQQ": 0.055704390000000006
+          "SPY": 0.060464000000000004,
+          "QQQ": 0.0636844
         },
-        "score": 0.05980791
+        "score": 0.0620742
+      },
+      {
+        "symbol": "MSFT",
+        "name": "MICROSOFT CORP",
+        "classes": [
+          "MSFT"
+        ],
+        "weights": {
+          "SPY": 0.059239179999999995,
+          "QQQ": 0.06451754
+        },
+        "score": 0.06187835999999999
       },
       {
         "symbol": "GOOGL",
@@ -86,10 +86,10 @@
           "GOOGL"
         ],
         "weights": {
-          "SPY": 0.047751020000000005,
-          "QQQ": 0.055530880000000005
+          "SPY": 0.04747349000000001,
+          "QQQ": 0.05487242
         },
-        "score": 0.051640950000000005
+        "score": 0.051172955000000006
       },
       {
         "symbol": "AMZN",
@@ -98,10 +98,10 @@
           "AMZN"
         ],
         "weights": {
-          "SPY": 0.04011044,
-          "QQQ": 0.04902053000000001
+          "SPY": 0.03981916,
+          "QQQ": 0.046664199999999996
         },
-        "score": 0.044565485
+        "score": 0.04324168
       },
       {
         "symbol": "META",
@@ -110,10 +110,10 @@
           "META"
         ],
         "weights": {
-          "SPY": 0.02108728,
-          "QQQ": 0.03070732
+          "SPY": 0.020915499999999997,
+          "QQQ": 0.032098589999999996
         },
-        "score": 0.025897299999999998
+        "score": 0.026507044999999996
       },
       {
         "symbol": "TSLA",
@@ -122,16 +122,16 @@
           "TSLA"
         ],
         "weights": {
-          "SPY": 0.01738309,
-          "QQQ": 0.033450669999999995
+          "SPY": 0.01743357,
+          "QQQ": 0.03534518
         },
-        "score": 0.025416879999999996
+        "score": 0.026389375
       }
     ],
-    "checked": "2026-11-25T21:00:00+00:00"
+    "checked": "2026-11-27T18:00:00+00:00"
   },
   "monitor": null,
   "warnings": [],
   "missed_checks": [],
-  "preview_day": "2026-11-25"
+  "preview_day": "2026-11-27"
 }
